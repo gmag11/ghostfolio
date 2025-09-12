@@ -1,0 +1,68 @@
+<div class="mb-3">
+  <table
+    class="gf-table w-100"
+    mat-table
+    [dataSource]="[{ id: 'activity-callback' }]"
+  >
+    <ng-container matColumnDef="label">
+      <th
+        *matHeaderCellDef
+        class="px-1"
+        mat-header-cell
+        style="width: 25%"
+      ></th>
+      <td *matCellDef="let element" class="px-1" mat-cell>
+        <strong i18n>Activity callback</strong>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="url">
+      <th
+        *matHeaderCellDef
+        class="px-1"
+        mat-header-cell
+        style="width: 60%"
+      ></th>
+      <td *matCellDef="let element" class="px-1" mat-cell style="width: 60%">
+        <mat-form-field appearance="outline" class="w-100">
+          <input matInput placeholder="url" [(ngModel)]="activityCallbackUrl" />
+        </mat-form-field>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions" stickyEnd>
+      <th
+        *matHeaderCellDef
+        class="px-1"
+        mat-header-cell
+        style="width: 15%"
+      ></th>
+      <td
+        *matCellDef="let element"
+        class="px-1 text-right"
+        mat-cell
+        style="width: 15%"
+      >
+        <div class="d-inline-flex align-items-center justify-content-end">
+          <button
+            color="primary"
+            mat-flat-button
+            (click)="onSetActivityCallbackUrl()"
+          >
+            Save
+          </button>
+          <button
+            class="ml-2"
+            mat-button
+            (click)="onClearActivityCallbackUrl()"
+          >
+            Clear
+          </button>
+        </div>
+      </td>
+    </ng-container>
+
+    <tr *matHeaderRowDef="['label', 'url', 'actions']" mat-header-row></tr>
+    <tr *matRowDef="let row; columns: ['label', 'url', 'actions']" mat-row></tr>
+  </table>
+</div>
