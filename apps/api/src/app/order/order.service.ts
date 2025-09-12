@@ -266,8 +266,13 @@ export class OrderService {
         const params = new URLSearchParams();
         params.append('id', fullOrder.id);
         if (fullOrder.userId) params.append('userId', fullOrder.userId);
-        if (fullOrder.accountId)
-          params.append('accountId', fullOrder.accountId);
+        if (fullOrder.accountId) {
+          // Use account name instead of account id in callback
+          const account = await this.accountService.account({
+            id_userId: { userId: fullOrder.userId, id: fullOrder.accountId }
+          });
+          if (account?.name) params.append('accountName', account.name);
+        }
         if (fullOrder.type) params.append('type', String(fullOrder.type));
         if (fullOrder.date)
           params.append('date', (fullOrder.date as Date).toISOString());
@@ -285,10 +290,9 @@ export class OrderService {
 
         // Include tags (names and ids) if present
         if (fullOrder.tags && fullOrder.tags.length > 0) {
-          const tagNames = fullOrder.tags.map((t) => t.name).join(',');
-          const tagIds = fullOrder.tags.map((t) => t.id).join(',');
-          params.append('tags', tagNames);
-          params.append('tagIds', tagIds);
+          const tagNames = fullOrder.tags.map((t) => t.name);
+          // Send tags as repeated tags[] parameters so receivers can parse them as an array
+          tagNames.forEach((name: string) => params.append('tags[]', name));
         }
 
         // Merge existing search params if any
