@@ -1,0 +1,22 @@
+/* Styles for admin callbacks */
+:host {
+  display: block;
+}
+
+/* Ensure table cells vertically center their contents so label, input and buttons align */
+:host ::ng-deep .gf-table td.mat-cell,
+:host ::ng-deep .gf-table th.mat-header-cell {
+  vertical-align: middle;
+  display: flex;
+  align-items: center;
+}
+
+/* Allow the form-field/input to grow and occupy available width inside the cell */
+:host ::ng-deep .gf-table td.mat-cell .w-100 {
+  flex: 1 1 auto;
+}
+
+/* Remove extra top/bottom margins that could offset vertical centering */
+:host ::ng-deep .gf-table td.mat-cell .mat-form-field {
+  margin: 0;
+}
