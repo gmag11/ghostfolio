@@ -1,7 +1,10 @@
+import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
+
 import { PortfolioDetails, PortfolioPosition } from '..';
 import { Market } from '../../types';
 
 export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
+  activities?: Activity[];
   alias?: string;
   hasDetails: boolean;
   holdings: {

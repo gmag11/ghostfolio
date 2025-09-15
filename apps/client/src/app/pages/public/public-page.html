@@ -88,6 +88,40 @@
         </mat-card-content>
       </mat-card>
     </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12 activities-section">
+      <mat-card appearance="outlined" class="mb-3">
+        <mat-card-header class="overflow-hidden w-100">
+          <mat-card-title class="text-truncate" i18n
+            >Latest activities</mat-card-title
+          >
+        </mat-card-header>
+        <mat-card-content>
+          <gf-activities-table
+            [baseCurrency]="'USD'"
+            [dataSource]="activitiesDataSource"
+            [deviceType]="deviceType"
+            [hasActivities]="true"
+            [hasPermissionToCreateActivity]="false"
+            [hasPermissionToDeleteActivity]="false"
+            [hasPermissionToExportActivities]="false"
+            [hasPermissionToOpenDetails]="false"
+            [pageIndex]="activitiesPageIndex"
+            [pageSize]="activitiesPageSize"
+            [showAccountColumn]="false"
+            [showActions]="false"
+            [showCheckbox]="false"
+            [showNotesColumn]="false"
+            [sortColumn]="activitiesSortColumn"
+            [sortDirection]="activitiesSortDirection"
+            [totalItems]="activitiesTotalItems"
+            (pageChanged)="onActivitiesPageChanged($event)"
+            (sortChanged)="onActivitiesSortChanged($event)"
+          />
+        </mat-card-content>
+      </mat-card>
+    </div>
     @if (publicPortfolioDetails?.hasDetails) {
       <div class="col-md-4">
         <mat-card appearance="outlined" class="mb-3">

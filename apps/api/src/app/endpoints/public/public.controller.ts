@@ -1,4 +1,6 @@
 import { AccessService } from '@ghostfolio/api/app/access/access.service';
+import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
+import { OrderService } from '@ghostfolio/api/app/order/order.service';
 import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.service';
 import { UserService } from '@ghostfolio/api/app/user/user.service';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response/transform-data-source-in-response.interceptor';
@@ -27,6 +29,7 @@ export class PublicController {
     private readonly accessService: AccessService,
     private readonly configurationService: ConfigurationService,
     private readonly exchangeRateDataService: ExchangeRateDataService,
+    private readonly orderService: OrderService,
     private readonly portfolioService: PortfolioService,
     @Inject(REQUEST) private readonly request: RequestWithUser,
     private readonly userService: UserService
@@ -57,10 +60,11 @@ export class PublicController {
     }
 
     const [
-      { createdAt, holdings, markets },
-      { performance: performance1d },
-      { performance: performanceMax },
-      { performance: performanceYtd }
+      portfolioDetails,
+      performance1dResult,
+      performanceMaxResult,
+      performanceYtdResult,
+      activitiesResult
     ] = await Promise.all([
       this.portfolioService.getDetails({
         impersonationId: access.userId,
@@ -73,14 +77,28 @@ export class PublicController {
           impersonationId: undefined,
           userId: user.id
         });
+      }),
+      this.orderService.getOrders({
+        userId: access.userId,
+        userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
+        take: 10,
+        sortColumn: 'date',
+        sortDirection: 'desc'
       })
     ]);
+
+    const { createdAt, holdings, markets } = portfolioDetails;
+    const { performance: performance1d } = performance1dResult as any;
+    const { performance: performanceMax } = performanceMaxResult as any;
+    const { performance: performanceYtd } = performanceYtdResult as any;
+    const { activities } = activitiesResult as any;
 
     Object.values(markets ?? {}).forEach((market) => {
       delete market.valueInBaseCurrency;
     });
 
     const publicPortfolioResponse: PublicPortfolioResponse = {
+      activities: activities.slice(0, 10), // Get only the last 10 activities
       createdAt,
       hasDetails,
       markets,
@@ -101,6 +119,12 @@ export class PublicController {
         }
       }
     };
+
+    // Feature flag intentionally always false to hide sensitive fields like
+    // account and notes/comment in activities when returning public portfolio
+    // responses. Keep the code path so it can be re-enabled later by setting
+    // the flag to true.
+    const SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC = false;
 
     const totalValue = getSum(
       Object.values(holdings).map(({ currency, marketPrice, quantity }) => {
@@ -133,6 +157,23 @@ export class PublicController {
         url: portfolioPosition.url,
         valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
       };
+    }
+    // If activities exist, map them into the public response but strip out
+    // account and comment fields unless the feature flag is enabled.
+    if (activities && Array.isArray(activities)) {
+      publicPortfolioResponse.activities = activities
+        .slice(0, 10)
+        .map((act) => {
+          if (SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC) {
+            return act;
+          }
+
+          // Create a shallow copy and remove potentially sensitive fields
+          const rest = { ...act };
+          delete (rest as any).account;
+          delete (rest as any).comment;
+          return rest as Activity;
+        });
     }
 
     return publicPortfolioResponse;
