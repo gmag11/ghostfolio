@@ -1,11 +1,13 @@
+import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { DataService } from '@ghostfolio/client/services/data.service';
-import { UNKNOWN_KEY } from '@ghostfolio/common/config';
+import { DEFAULT_PAGE_SIZE, UNKNOWN_KEY } from '@ghostfolio/common/config';
 import { prettifySymbol } from '@ghostfolio/common/helper';
 import {
   PortfolioPosition,
   PublicPortfolioResponse
 } from '@ghostfolio/common/interfaces';
 import { Market } from '@ghostfolio/common/types';
+import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table';
 import { GfHoldingsTableComponent } from '@ghostfolio/ui/holdings-table/holdings-table.component';
 import { GfPortfolioProportionChartComponent } from '@ghostfolio/ui/portfolio-proportion-chart/portfolio-proportion-chart.component';
 import { GfValueComponent } from '@ghostfolio/ui/value';
@@ -16,10 +18,14 @@ import {
   ChangeDetectorRef,
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
-  OnInit
+  OnInit,
+  OnDestroy
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { PageEvent } from '@angular/material/paginator';
+import { Sort, SortDirection } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AssetClass } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
@@ -32,6 +38,7 @@ import { catchError, takeUntil } from 'rxjs/operators';
   host: { class: 'page' },
   imports: [
     CommonModule,
+    GfActivitiesTableComponent,
     GfHoldingsTableComponent,
     GfPortfolioProportionChartComponent,
     GfValueComponent,
@@ -44,7 +51,13 @@ import { catchError, takeUntil } from 'rxjs/operators';
   styleUrls: ['./public-page.scss'],
   templateUrl: './public-page.html'
 })
-export class GfPublicPageComponent implements OnInit {
+export class GfPublicPageComponent implements OnInit, OnDestroy {
+  public activitiesDataSource: MatTableDataSource<Activity>;
+  public activitiesPageIndex = 0;
+  public activitiesPageSize = DEFAULT_PAGE_SIZE;
+  public activitiesSortColumn = 'date';
+  public activitiesSortDirection: SortDirection = 'desc';
+  public activitiesTotalItems: number;
   public continents: {
     [code: string]: { name: string; value: number };
   };
@@ -106,9 +119,29 @@ export class GfPublicPageComponent implements OnInit {
         this.publicPortfolioDetails = portfolioPublicDetails;
 
         this.initializeAnalysisData();
+        this.fetchActivities();
 
         this.changeDetectorRef.markForCheck();
       });
+  }
+
+  public fetchActivities() {
+    // Use activities from the public portfolio response
+    const activities = this.publicPortfolioDetails?.activities || [];
+    this.activitiesDataSource = new MatTableDataSource(activities);
+    this.activitiesTotalItems = activities.length;
+  }
+
+  public onActivitiesPageChanged(page: PageEvent) {
+    this.activitiesPageIndex = page.pageIndex;
+    this.fetchActivities();
+  }
+
+  public onActivitiesSortChanged({ active, direction }: Sort) {
+    this.activitiesPageIndex = 0;
+    this.activitiesSortColumn = active;
+    this.activitiesSortDirection = direction;
+    this.fetchActivities();
   }
 
   public initializeAnalysisData() {
