@@ -81,7 +81,9 @@ export class PublicController {
       this.orderService.getOrders({
         userId: access.userId,
         userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
-        take: 10,
+        take: access.permissions.includes('READ_RESTRICTED_EXTENDED')
+          ? undefined
+          : 10,
         sortColumn: 'date',
         sortDirection: 'desc'
       })
@@ -93,12 +95,17 @@ export class PublicController {
     const { performance: performanceYtd } = performanceYtdResult as any;
     const { activities } = activitiesResult as any;
 
+    // Check if this is READ_RESTRICTED_EXTENDED permission
+    const isRestrictedExtended = access.permissions.includes(
+      'READ_RESTRICTED_EXTENDED'
+    );
+
     Object.values(markets ?? {}).forEach((market) => {
       delete market.valueInBaseCurrency;
     });
 
     const publicPortfolioResponse: PublicPortfolioResponse = {
-      activities: activities.slice(0, 10), // Get only the last 10 activities
+      activities: isRestrictedExtended ? activities : activities.slice(0, 10), // Get all activities for extended or only the last 10 for restricted
       createdAt,
       hasDetails,
       markets,
@@ -125,6 +132,7 @@ export class PublicController {
     // responses. Keep the code path so it can be re-enabled later by setting
     // the flag to true.
     const SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC = false;
+    const SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED = isRestrictedExtended;
 
     const totalValue = getSum(
       Object.values(holdings).map(({ currency, marketPrice, quantity }) => {
@@ -140,40 +148,56 @@ export class PublicController {
     ).toNumber();
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
-      publicPortfolioResponse.holdings[symbol] = {
-        allocationInPercentage:
-          portfolioPosition.valueInBaseCurrency / totalValue,
-        assetClass: hasDetails ? portfolioPosition.assetClass : undefined,
-        countries: hasDetails ? portfolioPosition.countries : [],
-        currency: hasDetails ? portfolioPosition.currency : undefined,
-        dataSource: portfolioPosition.dataSource,
-        dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
-        markets: hasDetails ? portfolioPosition.markets : undefined,
-        name: portfolioPosition.name,
-        netPerformancePercentWithCurrencyEffect:
-          portfolioPosition.netPerformancePercentWithCurrencyEffect,
-        sectors: hasDetails ? portfolioPosition.sectors : [],
-        symbol: portfolioPosition.symbol,
-        url: portfolioPosition.url,
-        valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
-      };
+      // For READ_RESTRICTED_EXTENDED, show all holding fields like in private view
+      if (SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED) {
+        publicPortfolioResponse.holdings[symbol] = {
+          ...portfolioPosition,
+          allocationInPercentage:
+            portfolioPosition.valueInBaseCurrency / totalValue,
+          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
+        };
+      } else {
+        // Original restricted logic
+        publicPortfolioResponse.holdings[symbol] = {
+          allocationInPercentage:
+            portfolioPosition.valueInBaseCurrency / totalValue,
+          assetClass: hasDetails ? portfolioPosition.assetClass : undefined,
+          countries: hasDetails ? portfolioPosition.countries : [],
+          currency: hasDetails ? portfolioPosition.currency : undefined,
+          dataSource: portfolioPosition.dataSource,
+          dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
+          markets: hasDetails ? portfolioPosition.markets : undefined,
+          name: portfolioPosition.name,
+          netPerformancePercentWithCurrencyEffect:
+            portfolioPosition.netPerformancePercentWithCurrencyEffect,
+          sectors: hasDetails ? portfolioPosition.sectors : [],
+          symbol: portfolioPosition.symbol,
+          url: portfolioPosition.url,
+          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
+        };
+      }
     }
     // If activities exist, map them into the public response but strip out
     // account and comment fields unless the feature flag is enabled.
     if (activities && Array.isArray(activities)) {
-      publicPortfolioResponse.activities = activities
-        .slice(0, 10)
-        .map((act) => {
-          if (SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC) {
-            return act;
-          }
+      const activitiesToProcess = isRestrictedExtended
+        ? activities
+        : activities.slice(0, 10);
 
-          // Create a shallow copy and remove potentially sensitive fields
-          const rest = { ...act };
-          delete (rest as any).account;
-          delete (rest as any).comment;
-          return rest as Activity;
-        });
+      publicPortfolioResponse.activities = activitiesToProcess.map((act) => {
+        if (
+          SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC ||
+          SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED
+        ) {
+          return act;
+        }
+
+        // Create a shallow copy and remove potentially sensitive fields
+        const rest = { ...act };
+        delete (rest as any).account;
+        delete (rest as any).comment;
+        return rest as Activity;
+      });
     }
 
     return publicPortfolioResponse;
