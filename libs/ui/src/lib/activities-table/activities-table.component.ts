@@ -105,8 +105,10 @@ export class GfActivitiesTableComponent
   @Input() pageIndex: number;
   @Input() pageSize = DEFAULT_PAGE_SIZE;
   @Input() showActions = true;
+  @Input() showAccountColumn = true;
   @Input() showCheckbox = false;
   @Input() showNameColumn = true;
+  @Input() showNotesColumn = true;
   @Input() sortColumn: string;
   @Input() sortDirection: SortDirection;
   @Input() sortDisabled = false;
@@ -187,8 +189,9 @@ export class GfActivitiesTableComponent
       'value',
       'currency',
       'valueInBaseCurrency',
-      'account',
-      'comment',
+      // Include account and comment columns based on input parameters
+      ...(this.showAccountColumn ? ['account'] : []),
+      ...(this.showNotesColumn ? ['comment'] : []),
       'actions'
     ];
 

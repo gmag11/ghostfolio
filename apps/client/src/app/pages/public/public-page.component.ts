@@ -127,9 +127,46 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   public fetchActivities() {
     // Use activities from the public portfolio response
-    const activities = this.publicPortfolioDetails?.activities || [];
+    let activities = this.publicPortfolioDetails?.activities || [];
+
+    // Apply sorting if specified
+    if (this.activitiesSortColumn && this.activitiesSortDirection) {
+      activities = [...activities].sort((a, b) => {
+        const aValue = this.getSortValue(a, this.activitiesSortColumn);
+        const bValue = this.getSortValue(b, this.activitiesSortColumn);
+
+        let comparison = 0;
+        if (aValue < bValue) {
+          comparison = -1;
+        } else if (aValue > bValue) {
+          comparison = 1;
+        }
+
+        return this.activitiesSortDirection === 'desc'
+          ? -comparison
+          : comparison;
+      });
+    }
+
     this.activitiesDataSource = new MatTableDataSource(activities);
     this.activitiesTotalItems = activities.length;
+  }
+
+  private getSortValue(activity: Activity, column: string): any {
+    switch (column) {
+      case 'date':
+        return new Date(activity.date);
+      case 'type':
+        return activity.type;
+      case 'quantity':
+        return activity.quantity || 0;
+      case 'unitPrice':
+        return activity.unitPrice || 0;
+      case 'fee':
+        return activity.fee || 0;
+      default:
+        return '';
+    }
   }
 
   public onActivitiesPageChanged(page: PageEvent) {
