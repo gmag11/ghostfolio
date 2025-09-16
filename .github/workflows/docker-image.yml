@@ -2,11 +2,13 @@ name: Docker image CD
 
 on:
   push:
+    branches:
+      - 'dev/gmag11'
     tags:
       - '*.*.*'
   pull_request:
     branches:
-      - 'main'
+      - 'dev/gmag11'
 
 jobs:
   build_and_push:
