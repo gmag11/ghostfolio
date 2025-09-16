@@ -189,7 +189,11 @@ export function hasReadRestrictedAccessPermission({
     return id === impersonationId;
   });
 
-  return access?.permissions?.includes('READ_RESTRICTED') ?? true;
+  return (
+    (access?.permissions?.includes('READ_RESTRICTED') ||
+      access?.permissions?.includes('READ_RESTRICTED_EXTENDED')) ??
+    true
+  );
 }
 
 export function hasRole(aUser: UserWithSettings, aRole: Role) {

@@ -8,23 +8,25 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
   alias?: string;
   hasDetails: boolean;
   holdings: {
-    [symbol: string]: Pick<
-      PortfolioPosition,
-      | 'allocationInPercentage'
-      | 'assetClass'
-      | 'countries'
-      | 'currency'
-      | 'dataSource'
-      | 'dateOfFirstActivity'
-      | 'markets'
-      | 'name'
-      | 'netPerformancePercentWithCurrencyEffect'
-      | 'sectors'
-      | 'symbol'
-      | 'url'
-      | 'valueInBaseCurrency'
-      | 'valueInPercentage'
-    >;
+    [symbol: string]:
+      | Pick<
+          PortfolioPosition,
+          | 'allocationInPercentage'
+          | 'assetClass'
+          | 'countries'
+          | 'currency'
+          | 'dataSource'
+          | 'dateOfFirstActivity'
+          | 'markets'
+          | 'name'
+          | 'netPerformancePercentWithCurrencyEffect'
+          | 'sectors'
+          | 'symbol'
+          | 'url'
+          | 'valueInBaseCurrency'
+          | 'valueInPercentage'
+        >
+      | PortfolioPosition; // Allow full PortfolioPosition for READ_RESTRICTED_EXTENDED
   };
   markets: {
     [key in Market]: Pick<

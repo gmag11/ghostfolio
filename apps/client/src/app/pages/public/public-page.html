@@ -80,10 +80,10 @@
           <gf-holdings-table
             [deviceType]="deviceType"
             [hasPermissionToOpenDetails]="false"
-            [hasPermissionToShowQuantities]="false"
-            [hasPermissionToShowValues]="false"
+            [hasPermissionToShowQuantities]="isExtendedView"
+            [hasPermissionToShowValues]="isExtendedView"
             [holdings]="holdings"
-            [pageSize]="7"
+            [pageSize]="holdingsPageSize"
           />
         </mat-card-content>
       </mat-card>
@@ -109,10 +109,10 @@
             [hasPermissionToOpenDetails]="false"
             [pageIndex]="activitiesPageIndex"
             [pageSize]="activitiesPageSize"
-            [showAccountColumn]="false"
+            [showAccountColumn]="hasExtendedActivityData"
             [showActions]="false"
             [showCheckbox]="false"
-            [showNotesColumn]="false"
+            [showNotesColumn]="hasExtendedActivityData"
             [sortColumn]="activitiesSortColumn"
             [sortDirection]="activitiesSortDirection"
             [totalItems]="activitiesTotalItems"
