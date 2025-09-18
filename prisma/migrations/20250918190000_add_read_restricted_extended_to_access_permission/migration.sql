@@ -1,0 +1,2 @@
+-- Alter enum AccessPermission to add READ_RESTRICTED_EXTENDED
+ALTER TYPE "AccessPermission" ADD VALUE IF NOT EXISTS 'READ_RESTRICTED_EXTENDED';
