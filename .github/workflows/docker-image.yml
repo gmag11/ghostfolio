@@ -2,13 +2,9 @@ name: Docker image CD
 
 on:
   push:
-    branches:
-      - 'dev/gmag11'
+    # Run only when a tag is pushed. Use a glob to match semantic-version-like tags.
     tags:
       - '*.*.*'
-  pull_request:
-    branches:
-      - 'dev/gmag11'
 
 jobs:
   build_and_push:
@@ -48,7 +44,9 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm/v7,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ghcr.io/${{ github.repository_owner }}/ghostfolio:latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
