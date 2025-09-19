@@ -1,9 +1,9 @@
 import { AccountService } from '@ghostfolio/api/app/account/account.service';
+import { UserService } from '@ghostfolio/api/app/user/user.service';
 import { PortfolioChangedEvent } from '@ghostfolio/api/events/portfolio-changed.event';
 import { LogPerformance } from '@ghostfolio/api/interceptors/performance-logging/performance-logging.interceptor';
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
 import { PrismaService } from '@ghostfolio/api/services/prisma/prisma.service';
-import { PropertyService } from '@ghostfolio/api/services/property/property.service';
 import { DataGatheringService } from '@ghostfolio/api/services/queues/data-gathering/data-gathering.service';
 import { SymbolProfileService } from '@ghostfolio/api/services/symbol-profile/symbol-profile.service';
 import {
@@ -13,7 +13,6 @@ import {
   ghostfolioPrefix,
   TAG_ID_EXCLUDE_FROM_ANALYSIS
 } from '@ghostfolio/common/config';
-import { PROPERTY_ACTIVITY_CALLBACK_URL } from '@ghostfolio/common/config';
 import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
 import {
   AssetProfileIdentifier,
@@ -22,7 +21,7 @@ import {
 } from '@ghostfolio/common/interfaces';
 import { OrderWithAccount } from '@ghostfolio/common/types';
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AssetClass,
@@ -51,7 +50,8 @@ export class OrderService {
     private readonly exchangeRateDataService: ExchangeRateDataService,
     private readonly prismaService: PrismaService,
     private readonly symbolProfileService: SymbolProfileService,
-    private readonly propertyService: PropertyService
+    @Inject(forwardRef(() => UserService))
+    private readonly userService: UserService
   ) {}
 
   private readonly logger = new Logger(OrderService.name);
@@ -242,9 +242,9 @@ export class OrderService {
     // Fire-and-forget: call activity callback URL if configured. Do not block or throw.
     (async () => {
       try {
-        const callbackUrl = await this.propertyService.getByKey<string>(
-          PROPERTY_ACTIVITY_CALLBACK_URL
-        );
+        // Get user settings to check for activity callback URL
+        const user = await this.userService.user({ id: order.userId });
+        const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
         if (!callbackUrl) return;
 
         let url: URL;
@@ -284,6 +284,8 @@ export class OrderService {
           params.append('fee', String(fullOrder.fee));
         if (fullOrder.SymbolProfile?.symbol)
           params.append('symbol', fullOrder.SymbolProfile.symbol);
+        if (fullOrder.SymbolProfile?.currency)
+          params.append('currency', fullOrder.SymbolProfile.currency);
 
         // Include comment (note) if present
         if (fullOrder.comment) params.append('note', String(fullOrder.comment));
@@ -294,6 +296,8 @@ export class OrderService {
           // Send tags as repeated tags[] parameters so receivers can parse them as an array
           tagNames.forEach((name: string) => params.append('tags[]', name));
         }
+
+        params.append('operation', 'create');
 
         // Merge existing search params if any
         const existing = url.search ? url.search.substring(1) : '';
@@ -321,6 +325,12 @@ export class OrderService {
   public async deleteOrder(
     where: Prisma.OrderWhereUniqueInput
   ): Promise<Order> {
+    // Fetch the full order details BEFORE deleting for callback purposes
+    const fullOrderForCallback = await this.prismaService.order.findUnique({
+      where,
+      include: { tags: true, SymbolProfile: true }
+    });
+
     const order = await this.prismaService.order.delete({
       where
     });
@@ -333,6 +343,86 @@ export class OrderService {
     if (symbolProfile.activitiesCount === 0) {
       await this.symbolProfileService.deleteById(order.symbolProfileId);
     }
+
+    // Fire-and-forget: call activity callback URL if configured. Do not block or throw.
+    (async () => {
+      try {
+        // Get user settings to check for activity callback URL
+        const user = await this.userService.user({ id: order.userId });
+        const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
+        if (!callbackUrl) return;
+
+        let url: URL;
+        try {
+          url = new URL(callbackUrl as string);
+        } catch (err) {
+          this.logger.warn(
+            `Invalid activity callback URL configured: ${String(callbackUrl)}`
+          );
+          return;
+        }
+
+        // Use the pre-fetched full order details (since the order was already deleted)
+        const fullOrder = (fullOrderForCallback ?? order) as any;
+
+        const params = new URLSearchParams();
+        params.append('id', fullOrder.id);
+        if (fullOrder.userId) params.append('userId', fullOrder.userId);
+        if (fullOrder.accountId) {
+          // Use account name instead of account id in callback
+          const account = await this.accountService.account({
+            id_userId: { userId: fullOrder.userId, id: fullOrder.accountId }
+          });
+          if (account?.name) params.append('accountName', account.name);
+        }
+        if (fullOrder.type) params.append('type', String(fullOrder.type));
+        if (fullOrder.date)
+          params.append('date', (fullOrder.date as Date).toISOString());
+        if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
+          params.append('quantity', String(fullOrder.quantity));
+        if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
+          params.append('unitPrice', String(fullOrder.unitPrice));
+        if (fullOrder.fee !== undefined && fullOrder.fee !== null)
+          params.append('fee', String(fullOrder.fee));
+        if (fullOrder.SymbolProfile?.symbol)
+          params.append('symbol', fullOrder.SymbolProfile.symbol);
+        if (fullOrder.SymbolProfile?.currency)
+          params.append('currency', fullOrder.SymbolProfile.currency);
+
+        params.append('operation', 'delete');
+
+        // Include comment (note) if present
+        if (fullOrder.comment) params.append('note', String(fullOrder.comment));
+
+        // Include tags (names and ids) if present
+        if (fullOrder.tags && fullOrder.tags.length > 0) {
+          const tagNames = fullOrder.tags.map((t) => t.name);
+          // Send tags as repeated tags[] parameters so receivers can parse them as an array
+          tagNames.forEach((name: string) => params.append('tags[]', name));
+          // Also send tag ids for convenience
+          const tagIds = fullOrder.tags.map((t) => t.id);
+          tagIds.forEach((id: string) => params.append('tagIds[]', id));
+        }
+
+        // Merge existing search params if any
+        const existing = url.search ? url.search.substring(1) : '';
+        const combined = [existing, params.toString()]
+          .filter((p) => p && p.length > 0)
+          .join('&');
+        url.search = combined;
+
+        // Perform GET with short timeout. Swallow errors.
+        axios.get(url.toString(), { timeout: 3000 }).catch((err) => {
+          this.logger.warn(
+            `Activity callback request failed: ${err?.message ?? String(err)}`
+          );
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Activity callback error: ${err?.message ?? String(err)}`
+        );
+      }
+    })();
 
     this.eventEmitter.emit(
       PortfolioChangedEvent.getName(),
@@ -804,6 +894,86 @@ export class OrderService {
         }
       }
     });
+
+    // Fire-and-forget: call activity callback URL if configured. Do not block or throw.
+    (async () => {
+      try {
+        // Get user settings to check for activity callback URL
+        const user = await this.userService.user({ id: order.userId });
+        const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
+        if (!callbackUrl) return;
+
+        let url: URL;
+        try {
+          url = new URL(callbackUrl as string);
+        } catch (err) {
+          this.logger.warn(
+            `Invalid activity callback URL configured: ${String(callbackUrl)}`
+          );
+          return;
+        }
+
+        // Ensure we have comment and tags by fetching the full order relations
+        const fullOrder = ((await this.prismaService.order.findUnique({
+          where: { id: order.id },
+          include: { tags: true, SymbolProfile: true }
+        })) ?? order) as any;
+
+        const params = new URLSearchParams();
+        params.append('id', fullOrder.id);
+        if (fullOrder.userId) params.append('userId', fullOrder.userId);
+        if (fullOrder.accountId) {
+          // Use account name instead of account id in callback
+          const account = await this.accountService.account({
+            id_userId: { userId: fullOrder.userId, id: fullOrder.accountId }
+          });
+          if (account?.name) params.append('accountName', account.name);
+        }
+        if (fullOrder.type) params.append('type', String(fullOrder.type));
+        if (fullOrder.date)
+          params.append('date', (fullOrder.date as Date).toISOString());
+        if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
+          params.append('quantity', String(fullOrder.quantity));
+        if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
+          params.append('unitPrice', String(fullOrder.unitPrice));
+        if (fullOrder.fee !== undefined && fullOrder.fee !== null)
+          params.append('fee', String(fullOrder.fee));
+        if (fullOrder.SymbolProfile?.symbol)
+          params.append('symbol', fullOrder.SymbolProfile.symbol);
+        if (fullOrder.SymbolProfile?.currency)
+          params.append('currency', fullOrder.SymbolProfile.currency);
+
+        // Include comment (note) if present
+        if (fullOrder.comment) params.append('note', String(fullOrder.comment));
+
+        // Include tags (names and ids) if present
+        if (fullOrder.tags && fullOrder.tags.length > 0) {
+          const tagNames = fullOrder.tags.map((t) => t.name);
+          // Send tags as repeated tags[] parameters so receivers can parse them as an array
+          tagNames.forEach((name: string) => params.append('tags[]', name));
+        }
+
+        params.append('operation', 'update');
+
+        // Merge existing search params if any
+        const existing = url.search ? url.search.substring(1) : '';
+        const combined = [existing, params.toString()]
+          .filter((p) => p && p.length > 0)
+          .join('&');
+        url.search = combined;
+
+        // Perform GET with short timeout. Swallow errors.
+        axios.get(url.toString(), { timeout: 3000 }).catch((err) => {
+          this.logger.warn(
+            `Activity callback request failed: ${err?.message ?? String(err)}`
+          );
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Activity callback error: ${err?.message ?? String(err)}`
+        );
+      }
+    })();
 
     this.eventEmitter.emit(
       PortfolioChangedEvent.getName(),

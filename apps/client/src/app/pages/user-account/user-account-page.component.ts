@@ -13,7 +13,12 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { diamondOutline, keyOutline, settingsOutline } from 'ionicons/icons';
+import {
+  diamondOutline,
+  keyOutline,
+  settingsOutline,
+  gitNetworkOutline
+} from 'ionicons/icons';
 import { DeviceDetectorService } from 'ngx-device-detector';
 import { Subject, takeUntil } from 'rxjs';
 
@@ -60,6 +65,11 @@ export class GfUserAccountPageComponent implements OnDestroy, OnInit {
               iconName: 'key-outline',
               label: internalRoutes.account.subRoutes.access.title,
               routerLink: internalRoutes.account.subRoutes.access.routerLink
+            },
+            {
+              iconName: 'git-network-outline',
+              label: internalRoutes.account.subRoutes.callbacks.title,
+              routerLink: internalRoutes.account.subRoutes.callbacks.routerLink
             }
           ];
 
@@ -67,7 +77,12 @@ export class GfUserAccountPageComponent implements OnDestroy, OnInit {
         }
       });
 
-    addIcons({ diamondOutline, keyOutline, settingsOutline });
+    addIcons({
+      diamondOutline,
+      keyOutline,
+      settingsOutline,
+      gitNetworkOutline
+    });
   }
 
   public ngOnInit() {

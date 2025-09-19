@@ -1,4 +1,3 @@
-import { GfAdminCallbacksComponent } from '@ghostfolio/client/components/admin-callbacks/admin-callbacks.component';
 import { GfAdminPlatformComponent } from '@ghostfolio/client/components/admin-platform/admin-platform.component';
 import { GfAdminTagComponent } from '@ghostfolio/client/components/admin-tag/admin-tag.component';
 import { GfDataProviderStatusComponent } from '@ghostfolio/client/components/data-provider-status/data-provider-status.component';
@@ -50,7 +49,6 @@ import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
   imports: [
     CommonModule,
     FormsModule,
-    GfAdminCallbacksComponent,
     GfAdminPlatformComponent,
     GfAdminTagComponent,
     GfDataProviderStatusComponent,
