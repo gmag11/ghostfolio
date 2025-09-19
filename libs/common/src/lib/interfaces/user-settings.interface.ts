@@ -8,6 +8,7 @@ import {
 import { PerformanceCalculationType } from '@ghostfolio/common/types/performance-calculation-type.type';
 
 export interface UserSettings {
+  activityCallbackUrl?: string;
   annualInterestRate?: number;
   baseCurrency?: string;
   benchmark?: string;

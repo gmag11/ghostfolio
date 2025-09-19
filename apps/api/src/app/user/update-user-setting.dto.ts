@@ -19,6 +19,10 @@ import {
 import { eachYearOfInterval, format } from 'date-fns';
 
 export class UpdateUserSettingDto {
+  @IsString()
+  @IsOptional()
+  activityCallbackUrl?: string;
+
   @IsNumber()
   @IsOptional()
   annualInterestRate?: number;
