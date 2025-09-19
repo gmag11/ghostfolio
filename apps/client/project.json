@@ -84,7 +84,12 @@
         "optimization": false,
         "namedChunks": true,
         "serviceWorker": true,
-        "ngswConfigPath": "apps/client/ngsw-config.json"
+        "ngswConfigPath": "apps/client/ngsw-config.json",
+        "allowedCommonJsDependencies": [
+          "validator/lib/isFullWidth",
+          "validator/lib/isHSL",
+          "validator/lib/isHalfWidth"
+        ]
       },
       "configurations": {
         "development-ca": {
