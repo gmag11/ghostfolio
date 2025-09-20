@@ -1,6 +1,6 @@
 import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { DataService } from '@ghostfolio/client/services/data.service';
-import { DEFAULT_PAGE_SIZE, UNKNOWN_KEY } from '@ghostfolio/common/config';
+import { UNKNOWN_KEY } from '@ghostfolio/common/config';
 import { prettifySymbol } from '@ghostfolio/common/helper';
 import {
   PortfolioPosition,
@@ -54,7 +54,8 @@ import { catchError, takeUntil } from 'rxjs/operators';
 export class GfPublicPageComponent implements OnInit, OnDestroy {
   public activitiesDataSource: MatTableDataSource<Activity>;
   public activitiesPageIndex = 0;
-  public activitiesPageSize = DEFAULT_PAGE_SIZE;
+  public activitiesPageSize = 10;
+  private readonly defaultHoldingsPageSize = 10;
   public activitiesSortColumn = 'date';
   public activitiesSortDirection: SortDirection = 'desc';
   public activitiesTotalItems: number;
@@ -111,7 +112,7 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   // Get the appropriate page size for holdings table
   public get holdingsPageSize(): number {
-    return this.isExtendedView ? Number.MAX_SAFE_INTEGER : 7;
+    return this.defaultHoldingsPageSize; // Always show 10 holdings initially, regardless of view type
   }
 
   private accessId: string;
@@ -157,11 +158,11 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   public fetchActivities() {
     // Use activities from the public portfolio response
-    let activities = this.publicPortfolioDetails?.activities || [];
+    let allActivities = this.publicPortfolioDetails?.activities || [];
 
     // Apply sorting if specified
     if (this.activitiesSortColumn && this.activitiesSortDirection) {
-      activities = [...activities].sort((a, b) => {
+      allActivities = [...allActivities].sort((a, b) => {
         const aValue = this.getSortValue(a, this.activitiesSortColumn);
         const bValue = this.getSortValue(b, this.activitiesSortColumn);
 
@@ -178,8 +179,19 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
       });
     }
 
-    this.activitiesDataSource = new MatTableDataSource(activities);
-    this.activitiesTotalItems = activities.length;
+    // Set the total number of items for pagination
+    this.activitiesTotalItems = allActivities.length;
+
+    // Apply pagination - show 10 items per page
+    const startIndex = this.activitiesPageIndex * this.activitiesPageSize;
+    const endIndex = startIndex + this.activitiesPageSize;
+    const paginatedActivities = allActivities.slice(startIndex, endIndex);
+
+    this.activitiesDataSource = new MatTableDataSource(paginatedActivities);
+
+    // Disable the built-in MatTableDataSource pagination and sorting as we handle it manually
+    this.activitiesDataSource.paginator = null;
+    this.activitiesDataSource.sort = null;
   }
 
   private getSortValue(activity: Activity, column: string): any {
@@ -201,6 +213,7 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   public onActivitiesPageChanged(page: PageEvent) {
     this.activitiesPageIndex = page.pageIndex;
+    this.activitiesPageSize = page.pageSize;
     this.fetchActivities();
   }
 
