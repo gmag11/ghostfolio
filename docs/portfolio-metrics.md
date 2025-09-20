@@ -182,192 +182,220 @@ Below are natural-language explanations for each metric listed above, followed b
 ### Portfolio (global) metrics — details
 
 - currentValueInBaseCurrency
-  - Natural language: The total market value of the portfolio converted into the user's base currency, including positions and cash where applicable.
-  - Formula (conceptual):
+  - The total market value of the portfolio converted into the user's base currency, including positions and cash where applicable.
+
     $\text{currentValueInBaseCurrency} = \sum_{i=1}^{N} \text{valueInBaseCurrency}_i + \text{cashInBaseCurrency}$
+
   - Technical note: each position's value is computed as (quantity \* marketPrice) and then converted using the exchange rate for the base currency. Cash and other balances are added.
 
 - totalInvestment
-  - Natural language: The sum of amounts the user has put into the portfolio (aggregate of investment cash flows).
-  - Formula (conceptual):
-    $\text{totalInvestment} = \sum_{activities\;type=BUY} \text{amount}_{activity} - \sum_{activities\;type=SELL} \text{proceeds}_{activity}\;$ (or aggregated as net cash flows depending on conventions)
+  - The sum of amounts the user has put into the portfolio (aggregate of investment cash flows).
+
+    $\text{totalInvestment} = \sum_{activities\;type=BUY} \text{amount}_{activity} - \sum_{activities\;type=SELL} \text{proceeds}_{activity}\;$
+
+    (or aggregated as net cash flows depending on conventions)
+
   - Technical note: In the code this is computed from order/activity records. Some calculators report "totalInvestment" as gross invested amount (ignoring sells) while others use net cash flow conventions; refer to `portfolio-calculator` implementation for the chosen convention.
 
 - totalInvestmentWithCurrencyEffect
-  - Natural language: Same as totalInvestment but converting each activity into base currency at the exchange rate effective at the activity date (so currency movements are included).
-  - Formula (conceptual):
+  - Same as totalInvestment but converting each activity into base currency at the exchange rate effective at the activity date (so currency movements are included).
+
     $\sum_{activity} \text{amount}_{activity} \times \text{exchangeRate}_{activityDate}$
 
 - netPerformance
-  - Natural language: Absolute profit or loss of the portfolio after fees, dividends, interest and realized/unrealized changes.
-  - Formula (conceptual):
+  - Absolute profit or loss of the portfolio after fees, dividends, interest and realized/unrealized changes.
+
     $\text{netPerformance} \approx \text{currentValue} - \text{totalInvestment} + \text{dividends} + \text{interest} - \text{fees} - \text{liabilities}$
+
   - Technical note: The exact aggregation depends on the calculator; ROAI internally composes net performance from symbol-level gross performance, realized gains, and fees (see `SymbolMetrics` aggregation in `roai/portfolio-calculator.ts`). Currency effects may be included in separate fields.
 
 - netPerformancePercentage
-  - Natural language: Net performance expressed as a percentage of a base (usually investment). It measures return relative to the invested capital.
-  - Formula (typical):
+  - Net performance expressed as a percentage of a base (usually investment). It measures return relative to the invested capital.
+
     $\text{netPerformancePercentage} = \dfrac{\text{netPerformance}}{\text{denominator}} \times 100\%$
+
   - Technical note: The denominator can be `totalInvestment` or a time-weighted average investment depending on the performance calculation method. ROAI uses time-weighted average investment as denominator in many cases.
 
 - netPerformancePercentageWithCurrencyEffect
-  - Natural language: Same as netPerformancePercentage but including currency conversion effects (i.e., amounts converted at relevant historical exchange rates).
+  - Same as netPerformancePercentage but including currency conversion effects (i.e., amounts converted at relevant historical exchange rates).
   - Formula (conceptual): apply currency conversion to numerator and denominator before division.
 
 - netPerformanceWithCurrencyEffect
-  - Natural language: Absolute net performance where each cash flow and market value is converted using appropriate historical exchange rates, therefore including FX gains/losses.
+  - Absolute net performance where each cash flow and market value is converted using appropriate historical exchange rates, therefore including FX gains/losses.
 
 - grossPerformance
-  - Natural language: Profit or loss before subtracting fees (and sometimes before adding dividends/interest). It represents market-driven gains (realized + unrealized) excluding transactional costs.
-  - Formula (conceptual):
+  - Profit or loss before subtracting fees (and sometimes before adding dividends/interest). It represents market-driven gains (realized + unrealized) excluding transactional costs.
+
     $\text{grossPerformance} = \text{currentMarketValue} - \text{initialValue} + \text{realizedGains}$
+
   - Technical note: Implementations aggregate symbol-level grossPerformance values to compute overall grossPerformance.
 
 - grossPerformanceWithCurrencyEffect
-  - Natural language: Gross performance computed after converting market values and cash flows to base currency at historical rates, so FX impact is reflected.
+  - Gross performance computed after converting market values and cash flows to base currency at historical rates, so FX impact is reflected.
 
 - annualizedPerformancePercent
-  - Natural language: The geometric annualized return that, when compounded over the elapsed years, equals the observed total return.
-  - Formula:
+  - The geometric annualized return that, when compounded over the elapsed years, equals the observed total return.
+
     $\text{annualized} = (1 + R)^{1/T} - 1$
+
     where $R$ is total return (e.g., netPerformance / base) and $T$ is time in years.
+
   - Technical note: When there are multiple cash flows, true annualized return requires an IRR or time-weighted / money-weighted conversion. The simple formula above applies for a single-period total return.
 
 - annualizedPerformancePercentWithCurrencyEffect
-  - Natural language: Annualized performance calculated using values converted with historical exchange rates (FX included).
+  - Annualized performance calculated using values converted with historical exchange rates (FX included).
 
 - totalFeesWithCurrencyEffect
-  - Natural language: Sum of all fees paid, converted into base currency using activity-date exchange rates.
-  - Formula: $\sum_{fees\;activity} fee_{activity} \times exchangeRate_{activityDate}$
+  - Sum of all fees paid, converted into base currency using activity-date exchange rates.
+
+    $\sum_{fees\;activity} fee_{activity} \times exchangeRate_{activityDate}$
 
 - totalInterestWithCurrencyEffect
-  - Natural language: Sum of interest amounts (e.g., from cash accounts or bonds) converted to base currency at the corresponding dates.
+  - Sum of interest amounts (e.g., from cash accounts or bonds) converted to base currency at the corresponding dates.
 
 - totalLiabilitiesWithCurrencyEffect
-  - Natural language: Sum of liabilities (margin loans, short positions, etc.) converted to base currency at appropriate rates.
+  - Sum of liabilities (margin loans, short positions, etc.) converted to base currency at appropriate rates.
 
 - fees / interest / liabilities / cash / committedFunds / emergencyFund
-  - Natural language: Aggregated numeric sums corresponding to each category. Computed by summing the corresponding transactions or account balances and converting to base currency where relevant.
+  - Aggregated numeric sums corresponding to each category. Computed by summing the corresponding transactions or account balances and converting to base currency where relevant.
 
 - activitiesCount / activityCount
-  - Natural language: The total number of portfolio activities (orders, deposits, withdrawals, dividends, etc.).
+  - The total number of portfolio activities (orders, deposits, withdrawals, dividends, etc.).
 
 - totalBuy / totalSell
-  - Natural language: Aggregated monetary volume of buy and sell activities respectively.
+  - Aggregated monetary volume of buy and sell activities respectively.
 
 - excludedAccountsAndActivities
-  - Natural language: Count or aggregated amount of accounts and activities excluded by filters.
+  - Count or aggregated amount of accounts and activities excluded by filters.
 
 - currentNetWorth
-  - Natural language: The user's net worth at the current time, when available in summary (may combine non-portfolio assets as well).
+  - The user's net worth at the current time, when available in summary (may combine non-portfolio assets as well).
 
 - fireWealth
-  - Natural language: A computed estimate of the wealth required for FIRE (Financial Independence) planning, based on portfolio and cash assumptions.
+  - A computed estimate of the wealth required for FIRE (Financial Independence) planning, based on portfolio and cash assumptions.
 
 ### Holding (per-position) metrics — details
 
 - symbol / name / dataSource / currency
-  - Natural language: Identifiers and metadata for the holding (no numeric calculation).
+  - Identifiers and metadata for the holding (no numeric calculation).
 
 - quantity
-  - Natural language: Net units held of the asset (buys minus sells).
-  - Formula: $\text{quantity} = \sum_{buy} q_{buy} - \sum_{sell} q_{sell}$
+  - Net units held of the asset (buys minus sells).
+
+    $\text{quantity} = \sum_{buy} q_{buy} - \sum_{sell} q_{sell}$
 
 - marketPrice
-  - Natural language: Latest unit price quoted for the asset from the data provider.
+  - Latest unit price quoted for the asset from the data provider.
 
 - marketPriceInBaseCurrency
-  - Natural language: marketPrice converted to the user's base currency using the latest applicable exchange rate.
+  - marketPrice converted to the user's base currency using the latest applicable exchange rate.
 
 - marketPriceMax / marketPriceMin
-  - Natural language: Historical maximum and minimum market prices observed within the available historical data window.
+  - Historical maximum and minimum market prices observed within the available historical data window.
 
 - averagePrice
-  - Natural language: Weighted average price paid per unit (ignoring fees unless specifically included).
-  - Formula: $\text{averagePrice} = \dfrac{\sum_{buys} (price_i \times qty_i)}{\sum_{buys} qty_i}$
+  - Weighted average price paid per unit (ignoring fees unless specifically included).
+
+    $\text{averagePrice} = \dfrac{\sum_{buys} (price_i \times qty_i)}{\sum_{buys} qty_i}$
+
   - Technical note: Some implementations include sell-adjustments or realized-gain accounting; the service builds this using activity history.
 
 - firstBuyDate
-  - Natural language: Date of the first purchase activity for the holding.
+  - Date of the first purchase activity for the holding.
 
 - transactionCount
-  - Natural language: Number of activities related to the holding.
+  - Number of activities related to the holding.
 
 - investment
-  - Natural language: Amount of money invested into this holding (in asset currency or base currency depending on field) derived from relevant buy orders.
-  - Formula (conceptual): $\text{investment} = \sum_{buys} (price_i \times qty_i)$ (converted to base currency when appropriate).
+  - Amount of money invested into this holding (in asset currency or base currency depending on field) derived from relevant buy orders.
+
+    $\text{investment} = \sum_{buys} (price_i \times qty_i)$ (converted to base currency when appropriate).
 
 - investmentWithCurrencyEffect
-  - Natural language: Investment amount taking into account historical exchange rates for each activity.
+  - Investment amount taking into account historical exchange rates for each activity.
 
 - timeWeightedInvestment
-  - Natural language: Average invested capital weighted by time (used by ROAI / time-weighted calculations to normalize returns when cash flows happen at different times).
+  - Average invested capital weighted by time (used by ROAI / time-weighted calculations to normalize returns when cash flows happen at different times).
   - Formula (as implemented conceptually in ROAI):
+
     $\text{timeWeightedAverage} = \dfrac{\sum_{d \in days} \text{investmentOnDay}_d}{\text{totalInvestmentDays}}$
+
   - Technical note: ROAI accumulates time-weighted contributions per day (or per transaction period) and divides by the total number of investment-days.
 
 - timeWeightedInvestmentWithCurrencyEffect
-  - Natural language: Time-weighted investment with each day's values converted to base currency using the appropriate FX rate.
+  - Time-weighted investment with each day's values converted to base currency using the appropriate FX rate.
 
 - value / valueInBaseCurrency
-  - Natural language: Current market value of the holding (quantity \* marketPrice) and the same converted to base currency.
-  - Formula: $\text{value} = \text{quantity} \times \text{marketPrice}$
+  - Current market value of the holding (quantity \* marketPrice) and the same converted to base currency.
+
+    $\text{value} = \text{quantity} \times \text{marketPrice}$
 
 - allocationInPercentage
-  - Natural language: Share of this holding's value in the context of the whole portfolio.
-  - Formula: $\text{allocation\%} = \dfrac{\text{valueInBaseCurrency}}{\text{currentValueInBaseCurrency}} \times 100\%$
+  - Share of this holding's value in the context of the whole portfolio.
+
+    $\text{allocation\%} = \dfrac{\text{valueInBaseCurrency}}{\text{currentValueInBaseCurrency}} \times 100\%$
 
 - grossPerformance
-  - Natural language: Holding-level gain or loss before deducting fees and (optionally) before including dividends/interest.
-  - Formula (conceptual): $\text{grossPerformance} = \text{currentValue} + \text{proceedsFromSells} - \text{costBasis}$
+  - Holding-level gain or loss before deducting fees and (optionally) before including dividends/interest.
+
+    $\text{grossPerformance} = \text{currentValue} + \text{proceedsFromSells} - \text{costBasis}$
+
   - Technical note: cost basis is derived from the historical buys; sells reduce quantity and may generate realized gains included in grossPerformance.
 
 - grossPerformancePercent
-  - Natural language: Gross performance divided by the chosen investment base (cost basis or time-weighted base depending on method).
-  - Formula (typical): $\dfrac{\text{grossPerformance}}{\text{investment}} \times 100\%$
+  - Gross performance divided by the chosen investment base (cost basis or time-weighted base depending on method).
+
+    $\dfrac{\text{grossPerformance}}{\text{investment}} \times 100\%$
 
 - grossPerformancePercentWithCurrencyEffect
-  - Natural language: Gross performance percentage after applying FX conversions to numerator and denominator.
+  - Gross performance percentage after applying FX conversions to numerator and denominator.
 
 - grossPerformanceWithCurrencyEffect
-  - Natural language: Gross performance measured in base currency using historical FX rates.
+  - Gross performance measured in base currency using historical FX rates.
 
 - netPerformance
-  - Natural language: Gross performance adjusted by fees and including dividend/interest effects (i.e., what the investor actually pocketed or lost).
-  - Formula (conceptual):
+  - Gross performance adjusted by fees and including dividend/interest effects (i.e., what the investor actually pocketed or lost).
+
     $\text{netPerformance} = \text{grossPerformance} - \text{fees} + \text{dividends} + \text{interest} - \text{liabilities}$
+
   - Technical note: In ROAI the netPerformance is further normalized into time-weighted percentages; consult `roai/portfolio-calculator.ts` for the exact aggregation steps.
 
 - netPerformancePercent
-  - Natural language: Net performance expressed as a percentage of the investment base.
-  - Formula: $\dfrac{\text{netPerformance}}{\text{denominator}} \times 100\%$ (denominator is either `investment` or a time-weighted average investment depending on calculation mode)
+  - Net performance expressed as a percentage of the investment base.
+
+    $\dfrac{\text{netPerformance}}{\text{denominator}} \times 100\%$
+
+    (denominator is either `investment` or a time-weighted average investment depending on calculation mode)
 
 - netPerformancePercentWithCurrencyEffect / netPerformanceWithCurrencyEffect
-  - Natural language: Net performance metrics computed after converting values using historical FX rates. The percent form divides converted netPerformance by converted base (investment or time-weighted base).
+  - Net performance metrics computed after converting values using historical FX rates. The percent form divides converted netPerformance by converted base (investment or time-weighted base).
 
 - netPerformancePercentageWithCurrencyEffectMap / netPerformanceWithCurrencyEffectMap
-  - Natural language: Mapped net performance values and percentages per predefined date ranges (1d, wtd, mtd, ytd, 1y, 5y, max). Each entry is computed the same way as the 'max' metric but limited to the period.
+  - Mapped net performance values and percentages per predefined date ranges (1d, wtd, mtd, ytd, 1y, 5y, max). Each entry is computed the same way as the 'max' metric but limited to the period.
 
 - dividend / dividendInBaseCurrency
-  - Natural language: Sum of dividends received for the holding (and converted to base currency when required).
-  - Formula: $\sum_{dividend\;activity} amount_{dividend} \times exchangeRate_{dividendDate}$
+  - Sum of dividends received for the holding (and converted to base currency when required).
+
+    $\sum_{dividend\;activity} amount_{dividend} \times exchangeRate_{dividendDate}$
 
 - dividendYieldPercent
-  - Natural language: Annualized dividend income divided by current market value (expressed as a percentage).
-  - Formula (typical): $\dfrac{\text{annualizedDividends}}{\text{currentMarketValue}} \times 100\%$
+  - Annualized dividend income divided by current market value (expressed as a percentage).
+
+    $\dfrac{\text{annualizedDividends}}{\text{currentMarketValue}} \times 100\%$
+
   - Technical note: Annualization is commonly done by scaling observed dividends by days-in-market or using trailing-12-month (TTM) dividends.
 
 - fee / feeInBaseCurrency
-  - Natural language: Fees paid for orders / custody / other services related to the holding, converted to base currency if shown as such.
+  - Fees paid for orders / custody / other services related to the holding, converted to base currency if shown as such.
 
 - historicalData
-  - Natural language: Time series of market prices (and sometimes derived values) used for charts and period calculations. No single formula — it's raw series data.
+  - Time series of market prices (and sometimes derived values) used for charts and period calculations. No single formula — it's raw series data.
 
 - performances
-  - Natural language: Pre-computed benchmark-style performance items such as all-time-high return and the date when it occurred.
+  - Pre-computed benchmark-style performance items such as all-time-high return and the date when it occurred.
 
 - tags / sectors / countries / assetClass / assetSubClass
-  - Natural language: Metadata and classification fields used for grouping and reporting; not numeric calculations per se.
+  - Metadata and classification fields used for grouping and reporting; not numeric calculations per se.
 
 ## Implementation pointers and caveats
 
