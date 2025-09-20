@@ -1,3 +1,4 @@
+import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { UNKNOWN_KEY } from '@ghostfolio/common/config';
 import { prettifySymbol } from '@ghostfolio/common/helper';
@@ -6,6 +7,7 @@ import {
   PublicPortfolioResponse
 } from '@ghostfolio/common/interfaces';
 import { Market } from '@ghostfolio/common/types';
+import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table';
 import { GfHoldingsTableComponent } from '@ghostfolio/ui/holdings-table/holdings-table.component';
 import { GfPortfolioProportionChartComponent } from '@ghostfolio/ui/portfolio-proportion-chart/portfolio-proportion-chart.component';
 import { GfValueComponent } from '@ghostfolio/ui/value';
@@ -16,10 +18,14 @@ import {
   ChangeDetectorRef,
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
-  OnInit
+  OnInit,
+  OnDestroy
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { PageEvent } from '@angular/material/paginator';
+import { Sort, SortDirection } from '@angular/material/sort';
+import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AssetClass } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
@@ -32,6 +38,7 @@ import { catchError, takeUntil } from 'rxjs/operators';
   host: { class: 'page' },
   imports: [
     CommonModule,
+    GfActivitiesTableComponent,
     GfHoldingsTableComponent,
     GfPortfolioProportionChartComponent,
     GfValueComponent,
@@ -44,7 +51,14 @@ import { catchError, takeUntil } from 'rxjs/operators';
   styleUrls: ['./public-page.scss'],
   templateUrl: './public-page.html'
 })
-export class GfPublicPageComponent implements OnInit {
+export class GfPublicPageComponent implements OnInit, OnDestroy {
+  public activitiesDataSource: MatTableDataSource<Activity>;
+  public activitiesPageIndex = 0;
+  public activitiesPageSize = 10;
+  private readonly defaultHoldingsPageSize = 10;
+  public activitiesSortColumn = 'date';
+  public activitiesSortDirection: SortDirection = 'desc';
+  public activitiesTotalItems: number;
   public continents: {
     [code: string]: { name: string; value: number };
   };
@@ -70,6 +84,36 @@ export class GfPublicPageComponent implements OnInit {
     [name: string]: { name: string; symbol: string; value: number };
   };
   public UNKNOWN_KEY = UNKNOWN_KEY;
+
+  // Determine if this is an extended view based on available data
+  public get isExtendedView(): boolean {
+    if (!this.publicPortfolioDetails?.holdings) return false;
+
+    // Check if any holding has extended fields that are only available in READ_RESTRICTED_EXTENDED
+    const firstHolding = Object.values(this.publicPortfolioDetails.holdings)[0];
+    return (
+      firstHolding &&
+      ('grossPerformance' in firstHolding ||
+        'averagePrice' in firstHolding ||
+        'quantity' in firstHolding)
+    );
+  }
+
+  // Check if activities have extended data (account and comment fields)
+  public get hasExtendedActivityData(): boolean {
+    if (!this.publicPortfolioDetails?.activities?.length) return false;
+
+    const firstActivity = this.publicPortfolioDetails.activities[0];
+    return (
+      firstActivity &&
+      ('account' in firstActivity || 'comment' in firstActivity)
+    );
+  }
+
+  // Get the appropriate page size for holdings table
+  public get holdingsPageSize(): number {
+    return this.defaultHoldingsPageSize; // Always show 10 holdings initially, regardless of view type
+  }
 
   private accessId: string;
   private unsubscribeSubject = new Subject<void>();
@@ -106,9 +150,78 @@ export class GfPublicPageComponent implements OnInit {
         this.publicPortfolioDetails = portfolioPublicDetails;
 
         this.initializeAnalysisData();
+        this.fetchActivities();
 
         this.changeDetectorRef.markForCheck();
       });
+  }
+
+  public fetchActivities() {
+    // Use activities from the public portfolio response
+    let allActivities = this.publicPortfolioDetails?.activities || [];
+
+    // Apply sorting if specified
+    if (this.activitiesSortColumn && this.activitiesSortDirection) {
+      allActivities = [...allActivities].sort((a, b) => {
+        const aValue = this.getSortValue(a, this.activitiesSortColumn);
+        const bValue = this.getSortValue(b, this.activitiesSortColumn);
+
+        let comparison = 0;
+        if (aValue < bValue) {
+          comparison = -1;
+        } else if (aValue > bValue) {
+          comparison = 1;
+        }
+
+        return this.activitiesSortDirection === 'desc'
+          ? -comparison
+          : comparison;
+      });
+    }
+
+    // Set the total number of items for pagination
+    this.activitiesTotalItems = allActivities.length;
+
+    // Apply pagination - show 10 items per page
+    const startIndex = this.activitiesPageIndex * this.activitiesPageSize;
+    const endIndex = startIndex + this.activitiesPageSize;
+    const paginatedActivities = allActivities.slice(startIndex, endIndex);
+
+    this.activitiesDataSource = new MatTableDataSource(paginatedActivities);
+
+    // Disable the built-in MatTableDataSource pagination and sorting as we handle it manually
+    this.activitiesDataSource.paginator = null;
+    this.activitiesDataSource.sort = null;
+  }
+
+  private getSortValue(activity: Activity, column: string): any {
+    switch (column) {
+      case 'date':
+        return new Date(activity.date);
+      case 'type':
+        return activity.type;
+      case 'quantity':
+        return activity.quantity || 0;
+      case 'unitPrice':
+        return activity.unitPrice || 0;
+      case 'fee':
+        return activity.fee || 0;
+      default:
+        return '';
+    }
+  }
+
+  public onActivitiesPageChanged(page: PageEvent) {
+    this.activitiesPageIndex = page.pageIndex;
+    this.activitiesPageSize = page.pageSize;
+    this.fetchActivities();
+  }
+
+  public onActivitiesSortChanged({ active, direction }: Sort) {
+    this.activitiesPageIndex = 0;
+    this.activitiesSortColumn = active;
+    this.activitiesSortDirection = direction;
+    this.fetchActivities();
   }
 
   public initializeAnalysisData() {

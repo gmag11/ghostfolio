@@ -1,3 +1,4 @@
+import { GfAdminCallbacksComponent } from '@ghostfolio/client/components/admin-callbacks/admin-callbacks.component';
 import { GfAdminPlatformComponent } from '@ghostfolio/client/components/admin-platform/admin-platform.component';
 import { GfAdminTagComponent } from '@ghostfolio/client/components/admin-tag/admin-tag.component';
 import { GfDataProviderStatusComponent } from '@ghostfolio/client/components/data-provider-status/data-provider-status.component';
@@ -6,7 +7,10 @@ import { NotificationService } from '@ghostfolio/client/core/notification/notifi
 import { AdminService } from '@ghostfolio/client/services/admin.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
-import { PROPERTY_API_KEY_GHOSTFOLIO } from '@ghostfolio/common/config';
+import {
+  PROPERTY_API_KEY_GHOSTFOLIO,
+  PROPERTY_ACTIVITY_CALLBACK_URL
+} from '@ghostfolio/common/config';
 import { getDateFormatString } from '@ghostfolio/common/helper';
 import {
   DataProviderGhostfolioStatusResponse,
@@ -26,8 +30,11 @@ import {
   OnDestroy,
   OnInit
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
@@ -42,6 +49,8 @@ import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
+    FormsModule,
+    GfAdminCallbacksComponent,
     GfAdminPlatformComponent,
     GfAdminTagComponent,
     GfDataProviderStatusComponent,
@@ -51,6 +60,8 @@ import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
     IonIcon,
     MatButtonModule,
     MatCardModule,
+    MatFormFieldModule,
+    MatInputModule,
     MatMenuModule,
     MatProgressBarModule,
     MatTableModule,
@@ -75,6 +86,7 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
   public isGhostfolioApiKeyValid: boolean;
   public isLoading = false;
   public pricingUrl: string;
+  public activityCallbackUrl: string | undefined;
 
   private unsubscribeSubject = new Subject<void>();
   private user: User;
@@ -172,6 +184,9 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
           PROPERTY_API_KEY_GHOSTFOLIO
         ] as string;
 
+        this.activityCallbackUrl =
+          (settings[PROPERTY_ACTIVITY_CALLBACK_URL] as string) ?? undefined;
+
         if (ghostfolioApiKey) {
           this.adminService
             .fetchGhostfolioDataProviderStatus(ghostfolioApiKey)
@@ -201,6 +216,28 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
         this.isLoading = false;
 
         this.changeDetectorRef.markForCheck();
+      });
+  }
+
+  public onSetActivityCallbackUrl() {
+    const value = (this.activityCallbackUrl || '').trim();
+
+    if (value) {
+      this.dataService
+        .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value })
+        .pipe(takeUntil(this.unsubscribeSubject))
+        .subscribe(() => {
+          this.initialize();
+        });
+    }
+  }
+
+  public onClearActivityCallbackUrl() {
+    this.dataService
+      .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value: undefined })
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .subscribe(() => {
+        this.initialize();
       });
   }
 }

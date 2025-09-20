@@ -10,6 +10,7 @@ import { DataProviderModule } from '@ghostfolio/api/services/data-provider/data-
 import { ExchangeRateDataModule } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.module';
 import { ImpersonationModule } from '@ghostfolio/api/services/impersonation/impersonation.module';
 import { PrismaModule } from '@ghostfolio/api/services/prisma/prisma.module';
+import { PropertyModule } from '@ghostfolio/api/services/property/property.module';
 import { DataGatheringModule } from '@ghostfolio/api/services/queues/data-gathering/data-gathering.module';
 import { SymbolProfileModule } from '@ghostfolio/api/services/symbol-profile/symbol-profile.module';
 
@@ -33,7 +34,8 @@ import { OrderService } from './order.service';
     RedisCacheModule,
     SymbolProfileModule,
     TransformDataSourceInRequestModule,
-    TransformDataSourceInResponseModule
+    TransformDataSourceInResponseModule,
+    PropertyModule
   ],
   providers: [AccountBalanceService, AccountService, OrderService]
 })

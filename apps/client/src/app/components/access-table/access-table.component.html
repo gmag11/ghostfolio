@@ -21,6 +21,11 @@
           @if (element.permissions.includes('READ')) {
             <ion-icon class="mr-1" name="lock-open-outline" />
             <ng-container i18n>View</ng-container>
+          } @else if (
+            element.permissions.includes('READ_RESTRICTED_EXTENDED')
+          ) {
+            <ion-icon class="mr-1" name="lock-closed-outline" />
+            <ng-container i18n>Restricted extended</ng-container>
           } @else if (element.permissions.includes('READ_RESTRICTED')) {
             <ion-icon class="mr-1" name="lock-closed-outline" />
             <ng-container i18n>Restricted view</ng-container>

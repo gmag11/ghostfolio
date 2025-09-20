@@ -1,27 +1,32 @@
+import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
+
 import { PortfolioDetails, PortfolioPosition } from '..';
 import { Market } from '../../types';
 
 export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
+  activities?: Activity[];
   alias?: string;
   hasDetails: boolean;
   holdings: {
-    [symbol: string]: Pick<
-      PortfolioPosition,
-      | 'allocationInPercentage'
-      | 'assetClass'
-      | 'countries'
-      | 'currency'
-      | 'dataSource'
-      | 'dateOfFirstActivity'
-      | 'markets'
-      | 'name'
-      | 'netPerformancePercentWithCurrencyEffect'
-      | 'sectors'
-      | 'symbol'
-      | 'url'
-      | 'valueInBaseCurrency'
-      | 'valueInPercentage'
-    >;
+    [symbol: string]:
+      | Pick<
+          PortfolioPosition,
+          | 'allocationInPercentage'
+          | 'assetClass'
+          | 'countries'
+          | 'currency'
+          | 'dataSource'
+          | 'dateOfFirstActivity'
+          | 'markets'
+          | 'name'
+          | 'netPerformancePercentWithCurrencyEffect'
+          | 'sectors'
+          | 'symbol'
+          | 'url'
+          | 'valueInBaseCurrency'
+          | 'valueInPercentage'
+        >
+      | PortfolioPosition; // Allow full PortfolioPosition for READ_RESTRICTED_EXTENDED
   };
   markets: {
     [key in Market]: Pick<

@@ -230,7 +230,7 @@ export class GfCreateOrUpdateActivityDialog implements OnDestroy {
       ],
       type: [undefined, Validators.required], // Set after value changes subscription
       unitPrice: [this.data.activity?.unitPrice, Validators.required],
-      updateAccountBalance: [false]
+      updateAccountBalance: [true]
     });
 
     this.activityForm.valueChanges
