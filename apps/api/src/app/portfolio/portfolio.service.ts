@@ -577,6 +577,7 @@ export class PortfolioService {
       grossPerformancePercentage,
       grossPerformancePercentageWithCurrencyEffect,
       investment,
+      investmentWithCurrencyEffect,
       marketPrice,
       netPerformance,
       netPerformancePercentage,
@@ -646,6 +647,7 @@ export class PortfolioService {
           }
         ),
         investment: investment.toNumber(),
+        investmentWithCurrencyEffect: investmentWithCurrencyEffect?.toNumber(),
         name: assetProfile.name,
         netPerformance: netPerformance?.toNumber() ?? 0,
         netPerformancePercent: netPerformancePercentage?.toNumber() ?? 0,
@@ -1782,6 +1784,7 @@ export class PortfolioService {
       grossPerformanceWithCurrencyEffect: 0,
       holdings: [],
       investment: balance,
+      investmentWithCurrencyEffect: balance,
       marketPrice: 0,
       name: currency,
       netPerformance: 0,

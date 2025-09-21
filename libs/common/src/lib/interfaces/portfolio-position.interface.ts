@@ -24,6 +24,7 @@ export interface PortfolioPosition {
   grossPerformanceWithCurrencyEffect: number;
   holdings: Holding[];
   investment: number;
+  investmentWithCurrencyEffect?: number;
   marketChange?: number;
   marketChangePercent?: number;
   marketPrice: number;
