@@ -34,6 +34,11 @@ import { DeviceDetectorService } from 'ngx-device-detector';
 import { EMPTY, Subject } from 'rxjs';
 import { catchError, takeUntil } from 'rxjs/operators';
 
+// Extended Activity interface for handling empty rows
+interface ActivityWithEmpty extends Activity {
+  isEmpty?: boolean;
+}
+
 @Component({
   host: { class: 'page' },
   imports: [
@@ -52,7 +57,7 @@ import { catchError, takeUntil } from 'rxjs/operators';
   templateUrl: './public-page.html'
 })
 export class GfPublicPageComponent implements OnInit, OnDestroy {
-  public activitiesDataSource: MatTableDataSource<Activity>;
+  public activitiesDataSource: MatTableDataSource<ActivityWithEmpty>;
   public activitiesPageIndex = 0;
   public activitiesPageSize = 10;
   private readonly defaultHoldingsPageSize = 10;
@@ -202,13 +207,58 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
     // Apply pagination - show 10 items per page
     const startIndex = this.activitiesPageIndex * this.activitiesPageSize;
     const endIndex = startIndex + this.activitiesPageSize;
-    const paginatedActivities = allActivities.slice(startIndex, endIndex);
+    let paginatedActivities: ActivityWithEmpty[] = allActivities.slice(
+      startIndex,
+      endIndex
+    );
+
+    // Fill with empty activities to always show exactly activitiesPageSize rows
+    const currentRowCount = paginatedActivities.length;
+    const emptyRowsNeeded = this.activitiesPageSize - currentRowCount;
+
+    if (emptyRowsNeeded > 0) {
+      const emptyActivities: Partial<Activity>[] = Array(emptyRowsNeeded)
+        .fill(null)
+        .map((_, index) => ({
+          id: `empty-${Date.now()}-${index}`,
+          date: null as any, // null to prevent rendering but maintain structure
+          type: '' as any, // empty string instead of undefined
+          quantity: null as any,
+          unitPrice: null as any,
+          fee: null as any,
+          currency: '',
+          valueInBaseCurrency: null as any,
+          value: null as any,
+          feeInBaseCurrency: null as any,
+          feeInAssetProfileCurrency: null as any,
+          unitPriceInAssetProfileCurrency: null as any,
+          symbolProfileId: `empty-${Date.now()}-${index}`,
+          userId: '',
+          isDraft: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          accountId: null,
+          accountUserId: null,
+          comment: '',
+          SymbolProfile: null,
+          account: null,
+          isEmpty: true // Custom property to identify empty rows
+        }));
+
+      paginatedActivities = [
+        ...paginatedActivities,
+        ...(emptyActivities as ActivityWithEmpty[])
+      ];
+    }
 
     this.activitiesDataSource = new MatTableDataSource(paginatedActivities);
 
     // Disable the built-in MatTableDataSource pagination and sorting as we handle it manually
     this.activitiesDataSource.paginator = null;
     this.activitiesDataSource.sort = null;
+
+    // Force change detection to apply empty row styles
+    this.changeDetectorRef.detectChanges();
   }
 
   private getSortValue(activity: Activity, column: string): any {
