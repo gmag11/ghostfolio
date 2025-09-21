@@ -34,6 +34,13 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
       'id' | 'valueInPercentage'
     >;
   };
+  // Extended metrics for READ_RESTRICTED_EXTENDED access
+  extendedMetrics?: {
+    totalInvestmentWithCurrencyEffect: number;
+    currentValueInBaseCurrency: number;
+    netPerformanceWithCurrencyEffect: number;
+    netPerformancePercentageWithCurrencyEffect: number;
+  };
 }
 
 interface PublicPortfolioResponseV1 {
