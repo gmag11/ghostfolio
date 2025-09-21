@@ -3,7 +3,7 @@ import { NgModule } from '@angular/core';
 import { SymbolPipe } from './symbol.pipe';
 
 @NgModule({
-  declarations: [SymbolPipe],
+  imports: [SymbolPipe],
   exports: [SymbolPipe]
 })
 export class GfSymbolModule {}

@@ -4,7 +4,7 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({
   name: 'gfSymbol',
-  standalone: false
+  standalone: true
 })
 export class SymbolPipe implements PipeTransform {
   public transform(aSymbol: string) {
