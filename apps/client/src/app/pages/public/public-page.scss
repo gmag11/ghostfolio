@@ -8,6 +8,16 @@
     }
   }
 
+  .activities-section {
+    gf-activities-table ::ng-deep {
+      .mat-mdc-table {
+        .mat-mdc-row {
+          min-height: 48px; // Ensure consistent row height
+        }
+      }
+    }
+  }
+
   .world-map-chart {
     .mat-mdc-card {
       .world-map-chart-container {
