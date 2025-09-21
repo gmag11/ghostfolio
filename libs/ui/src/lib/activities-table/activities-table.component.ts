@@ -104,6 +104,7 @@ export class GfActivitiesTableComponent
   @Input() locale = getLocale();
   @Input() pageIndex: number;
   @Input() pageSize = DEFAULT_PAGE_SIZE;
+  @Input() showAccountColumn = true;
   @Input() showActions = true;
   @Input() showAccountColumn = true;
   @Input() showCheckbox = false;
@@ -194,6 +195,12 @@ export class GfActivitiesTableComponent
       ...(this.showNotesColumn ? ['comment'] : []),
       'actions'
     ];
+
+    if (!this.showAccountColumn) {
+      this.displayedColumns = this.displayedColumns.filter((column) => {
+        return column !== 'account';
+      });
+    }
 
     if (!this.showCheckbox) {
       this.displayedColumns = this.displayedColumns.filter((column) => {

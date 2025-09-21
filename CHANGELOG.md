@@ -7,10 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added the symbol to the benchmark component
+- Added an option to configure the account column of the activities table component
+
 ### Changed
 
 - Renamed the show access token dialog component to user account registration dialog component
 - Refreshed the cryptocurrencies list
+- Upgraded `countup.js` from version `2.8.2` to `2.9.0`
 
 ### Fixed
 
