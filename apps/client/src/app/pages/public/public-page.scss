@@ -32,13 +32,13 @@
         // Target empty rows specifically (those with empty type and no symbol profile)
         .mat-mdc-row:has(gf-activity-type[ng-reflect-activity-type='']) {
           .mat-mdc-cell {
+            // Ensure cells still take up space - must come before nested rules
+            min-width: inherit;
+
             // Make content invisible but maintain layout
             * {
               visibility: hidden;
             }
-
-            // Ensure cells still take up space
-            min-width: inherit;
 
             // Add invisible placeholder content to maintain column widths
             &::after {
