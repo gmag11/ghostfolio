@@ -124,7 +124,19 @@ export class PublicController {
           relativeChange:
             performanceYtd.netPerformancePercentageWithCurrencyEffect
         }
-      }
+      },
+      // Add extended metrics for READ_RESTRICTED_EXTENDED access
+      extendedMetrics: isRestrictedExtended
+        ? {
+            totalInvestmentWithCurrencyEffect: performanceMax.totalInvestment,
+            currentValueInBaseCurrency:
+              performanceMax.currentValueInBaseCurrency,
+            netPerformanceWithCurrencyEffect:
+              performanceMax.netPerformanceWithCurrencyEffect,
+            netPerformancePercentageWithCurrencyEffect:
+              performanceMax.netPerformancePercentageWithCurrencyEffect
+          }
+        : undefined
     };
 
     // Feature flag intentionally always false to hide sensitive fields like

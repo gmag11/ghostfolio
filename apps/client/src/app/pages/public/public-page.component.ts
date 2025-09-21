@@ -115,6 +115,23 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
     return this.defaultHoldingsPageSize; // Always show 10 holdings initially, regardless of view type
   }
 
+  // Format net performance as "XXXXX (YYYY%)"
+  public get formattedNetPerformance(): string {
+    const extended = this.publicPortfolioDetails?.extendedMetrics;
+    if (!extended) return '';
+
+    const absoluteValue = extended.netPerformanceWithCurrencyEffect.toFixed(2);
+    const percentValue = (
+      extended.netPerformancePercentageWithCurrencyEffect * 100
+    ).toFixed(2);
+    const percentWithSign =
+      extended.netPerformancePercentageWithCurrencyEffect >= 0
+        ? `+${percentValue}`
+        : percentValue;
+
+    return `${absoluteValue} (${percentWithSign}%)`;
+  }
+
   private accessId: string;
   private unsubscribeSubject = new Subject<void>();
 

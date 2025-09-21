@@ -63,6 +63,56 @@
       </mat-card>
     </div>
   </div>
+  <!-- Extended metrics row for READ_RESTRICTED_EXTENDED access -->
+  @if (isExtendedView && publicPortfolioDetails?.extendedMetrics) {
+    <div class="row">
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [precision]="2"
+              [value]="
+                publicPortfolioDetails.extendedMetrics
+                  .totalInvestmentWithCurrencyEffect
+              "
+              >Total invested</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [precision]="2"
+              [value]="
+                publicPortfolioDetails.extendedMetrics
+                  .currentValueInBaseCurrency
+              "
+              >Current value</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [precision]="2"
+              [value]="formattedNetPerformance"
+              >Net performance</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
   <div class="proportion-charts row">
     <div class="col-md-12 allocations-by-symbol">
       <mat-card appearance="outlined" class="mb-3">
