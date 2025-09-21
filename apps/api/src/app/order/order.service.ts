@@ -833,6 +833,12 @@ export class OrderService {
     };
     where: Prisma.OrderWhereUniqueInput;
   }): Promise<Order> {
+    // Fetch the full order details BEFORE updating for callback purposes
+    const fullOrderBeforeUpdate = await this.prismaService.order.findUnique({
+      where,
+      include: { tags: true, SymbolProfile: true }
+    });
+
     if (!data.comment) {
       data.comment = null;
     }
@@ -878,6 +884,90 @@ export class OrderService {
     delete data.symbol;
     delete data.tags;
 
+    // Fire-and-forget: call activity callback URL for DELETION with old data before update. Do not block or throw.
+    (async () => {
+      if (!fullOrderBeforeUpdate) return;
+
+      try {
+        // Get user settings to check for activity callback URL
+        const user = await this.userService.user({
+          id: fullOrderBeforeUpdate.userId
+        });
+        const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
+        if (!callbackUrl) return;
+
+        let url: URL;
+        try {
+          url = new URL(callbackUrl as string);
+        } catch (err) {
+          this.logger.warn(
+            `Invalid activity callback URL configured: ${String(callbackUrl)}`
+          );
+          return;
+        }
+
+        // Use the pre-update order data for the deletion callback
+        const fullOrder = fullOrderBeforeUpdate as any;
+
+        const params = new URLSearchParams();
+        params.append('id', fullOrder.id);
+        if (fullOrder.userId) params.append('userId', fullOrder.userId);
+        if (fullOrder.accountId) {
+          // Use account name instead of account id in callback
+          const account = await this.accountService.account({
+            id_userId: { userId: fullOrder.userId, id: fullOrder.accountId }
+          });
+          if (account?.name) params.append('accountName', account.name);
+        }
+        if (fullOrder.type) params.append('type', String(fullOrder.type));
+        if (fullOrder.date)
+          params.append('date', (fullOrder.date as Date).toISOString());
+        if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
+          params.append('quantity', String(fullOrder.quantity));
+        if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
+          params.append('unitPrice', String(fullOrder.unitPrice));
+        if (fullOrder.fee !== undefined && fullOrder.fee !== null)
+          params.append('fee', String(fullOrder.fee));
+        if (fullOrder.SymbolProfile?.symbol)
+          params.append('symbol', fullOrder.SymbolProfile.symbol);
+        if (fullOrder.SymbolProfile?.currency)
+          params.append('currency', fullOrder.SymbolProfile.currency);
+
+        // Include comment (note) if present
+        if (fullOrder.comment) params.append('note', String(fullOrder.comment));
+
+        // Include tags (names and ids) if present
+        if (fullOrder.tags && fullOrder.tags.length > 0) {
+          const tagNames = fullOrder.tags.map((t) => t.name);
+          // Send tags as repeated tags[] parameters so receivers can parse them as an array
+          tagNames.forEach((name: string) => params.append('tags[]', name));
+          // Also send tag ids for convenience
+          const tagIds = fullOrder.tags.map((t) => t.id);
+          tagIds.forEach((id: string) => params.append('tagIds[]', id));
+        }
+
+        params.append('operation', 'delete');
+
+        // Merge existing search params if any
+        const existing = url.search ? url.search.substring(1) : '';
+        const combined = [existing, params.toString()]
+          .filter((p) => p && p.length > 0)
+          .join('&');
+        url.search = combined;
+
+        // Perform GET with short timeout. Swallow errors.
+        axios.get(url.toString(), { timeout: 3000 }).catch((err) => {
+          this.logger.warn(
+            `Activity callback request failed: ${err?.message ?? String(err)}`
+          );
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Activity callback error: ${err?.message ?? String(err)}`
+        );
+      }
+    })();
+
     // Remove existing tags
     await this.prismaService.order.update({
       where,
@@ -895,7 +985,7 @@ export class OrderService {
       }
     });
 
-    // Fire-and-forget: call activity callback URL if configured. Do not block or throw.
+    // Fire-and-forget: call activity callback URL for CREATION with new data after update. Do not block or throw.
     (async () => {
       try {
         // Get user settings to check for activity callback URL
@@ -953,7 +1043,7 @@ export class OrderService {
           tagNames.forEach((name: string) => params.append('tags[]', name));
         }
 
-        params.append('operation', 'update');
+        params.append('operation', 'create');
 
         // Merge existing search params if any
         const existing = url.search ? url.search.substring(1) : '';
