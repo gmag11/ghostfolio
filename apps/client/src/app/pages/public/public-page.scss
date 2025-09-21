@@ -11,8 +11,43 @@
   .activities-section {
     gf-activities-table ::ng-deep {
       .mat-mdc-table {
+        table-layout: fixed; // Fixed table layout to prevent column width changes
+        width: 100%;
+
         .mat-mdc-row {
           min-height: 48px; // Ensure consistent row height
+        }
+
+        // Ensure empty rows don't affect column widths
+        .mat-mdc-cell {
+          overflow: hidden; // Prevent content overflow from affecting layout
+
+          // For empty rows, ensure they maintain the same space as content rows
+          &:empty::before {
+            content: '\00a0'; // Non-breaking space to maintain cell dimensions
+            opacity: 0; // Make it invisible
+          }
+        }
+
+        // Target empty rows specifically (those with empty type and no symbol profile)
+        .mat-mdc-row:has(gf-activity-type[ng-reflect-activity-type='']) {
+          .mat-mdc-cell {
+            // Make content invisible but maintain layout
+            * {
+              visibility: hidden;
+            }
+
+            // Ensure cells still take up space
+            min-width: inherit;
+
+            // Add invisible placeholder content to maintain column widths
+            &::after {
+              content: '\00a0\00a0\00a0'; // Multiple non-breaking spaces
+              opacity: 0;
+              position: absolute;
+              pointer-events: none;
+            }
+          }
         }
       }
     }

@@ -204,17 +204,17 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
         .fill(null)
         .map((_, index) => ({
           id: `empty-${Date.now()}-${index}`,
-          date: undefined as any, // undefined instead of null to prevent rendering
-          type: undefined as any,
-          quantity: undefined as any,
-          unitPrice: undefined as any,
-          fee: undefined as any,
-          currency: undefined as any,
-          valueInBaseCurrency: undefined as any,
-          value: undefined as any,
-          feeInBaseCurrency: undefined as any,
-          feeInAssetProfileCurrency: undefined as any,
-          unitPriceInAssetProfileCurrency: undefined as any,
+          date: null as any, // null to prevent rendering but maintain structure
+          type: '' as any, // empty string instead of undefined
+          quantity: null as any,
+          unitPrice: null as any,
+          fee: null as any,
+          currency: '',
+          valueInBaseCurrency: null as any,
+          value: null as any,
+          feeInBaseCurrency: null as any,
+          feeInAssetProfileCurrency: null as any,
+          unitPriceInAssetProfileCurrency: null as any,
           symbolProfileId: `empty-${Date.now()}-${index}`,
           userId: '',
           isDraft: false,
@@ -222,9 +222,9 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
           updatedAt: new Date(),
           accountId: null,
           accountUserId: null,
-          comment: undefined as any,
-          SymbolProfile: undefined as any,
-          account: undefined as any,
+          comment: '',
+          SymbolProfile: null,
+          account: null,
           isEmpty: true // Custom property to identify empty rows
         }));
 
