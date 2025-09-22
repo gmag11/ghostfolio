@@ -7,17 +7,14 @@ import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-
 import { DEFAULT_CURRENCY } from '@ghostfolio/common/config';
 import { getSum } from '@ghostfolio/common/helper';
 import { PublicPortfolioResponse } from '@ghostfolio/common/interfaces';
-import type { RequestWithUser } from '@ghostfolio/common/types';
 
 import {
   Controller,
   Get,
   HttpException,
-  Inject,
   Param,
   UseInterceptors
 } from '@nestjs/common';
-import { REQUEST } from '@nestjs/core';
 import { Big } from 'big.js';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
@@ -28,7 +25,6 @@ export class PublicController {
     private readonly configurationService: ConfigurationService,
     private readonly exchangeRateDataService: ExchangeRateDataService,
     private readonly portfolioService: PortfolioService,
-    @Inject(REQUEST) private readonly request: RequestWithUser,
     private readonly userService: UserService
   ) {}
 
@@ -63,7 +59,21 @@ export class PublicController {
             id: accountId,
             type: 'ACCOUNT' as const
           }))
-        : [];
+        : undefined;
+
+    const portfolioDetailsOptions = {
+      impersonationId: access.userId,
+      userId: user.id,
+      withMarkets: true,
+      ...(accountFilters && { filters: accountFilters })
+    };
+
+    const performanceOptions = (dateRange: string) => ({
+      dateRange,
+      impersonationId: undefined,
+      userId: user.id,
+      ...(accountFilters && { filters: accountFilters })
+    });
 
     const [
       portfolioDetails,
@@ -71,19 +81,11 @@ export class PublicController {
       performanceMaxResult,
       performanceYtdResult
     ] = await Promise.all([
-      this.portfolioService.getDetails({
-        filters: accountFilters,
-        impersonationId: access.userId,
-        userId: user.id,
-        withMarkets: true
-      }),
+      this.portfolioService.getDetails(portfolioDetailsOptions),
       ...['1d', 'max', 'ytd'].map((dateRange) => {
-        return this.portfolioService.getPerformance({
-          dateRange,
-          filters: accountFilters,
-          impersonationId: undefined,
-          userId: user.id
-        });
+        return this.portfolioService.getPerformance(
+          performanceOptions(dateRange)
+        );
       })
     ]);
 
@@ -118,20 +120,31 @@ export class PublicController {
       }
     };
 
+    const baseCurrency =
+      user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY;
+
     const totalValue = getSum(
-      Object.values(holdings).map(({ currency, marketPrice, quantity }) => {
-        return new Big(
-          this.exchangeRateDataService.toCurrency(
-            quantity * marketPrice,
-            currency,
-            this.request.user?.settings?.settings.baseCurrency ??
-              DEFAULT_CURRENCY
-          )
-        );
-      })
+      Object.entries(holdings)
+        .filter(([symbol]) => symbol !== baseCurrency) // Exclude base currency from total calculation
+        .map(([, { currency, marketPrice, quantity }]) => {
+          return new Big(
+            this.exchangeRateDataService.toCurrency(
+              quantity * marketPrice,
+              currency,
+              baseCurrency
+            )
+          );
+        })
     ).toNumber();
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
+      // Exclude base currency (USD) from public portfolio holdings
+      const baseCurrency =
+        user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY;
+      if (symbol === baseCurrency) {
+        continue;
+      }
+
       publicPortfolioResponse.holdings[symbol] = {
         allocationInPercentage:
           portfolioPosition.valueInBaseCurrency / totalValue,
