@@ -1,10 +1,13 @@
 import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 
-import { PortfolioDetails, PortfolioPosition } from '..';
+import type { Order } from '@prisma/client';
+
+import { EnhancedSymbolProfile, PortfolioDetails, PortfolioPosition } from '..';
 import { Market } from '../../types';
+import type { AccountWithPlatform } from '../../types';
 
 export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
-  activities?: Activity[];
+  activities?: Activity[]; // Keep for backward compatibility
   alias?: string;
   hasDetails: boolean;
   holdings: {
@@ -28,6 +31,15 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
         >
       | PortfolioPosition; // Allow full PortfolioPosition for READ_RESTRICTED_EXTENDED
   };
+  latestActivities: (Pick<
+    Order,
+    'currency' | 'date' | 'fee' | 'quantity' | 'type' | 'unitPrice'
+  > & {
+    account?: Pick<AccountWithPlatform, 'currency' | 'name' | 'platform'>;
+    SymbolProfile?: EnhancedSymbolProfile;
+    value: number;
+    valueInBaseCurrency: number;
+  })[];
   markets: {
     [key in Market]: Pick<
       PortfolioDetails['markets'][key],
