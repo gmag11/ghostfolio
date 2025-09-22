@@ -1,5 +1,3 @@
-import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
-
 import type { Order } from '@prisma/client';
 
 import { EnhancedSymbolProfile, PortfolioDetails, PortfolioPosition } from '..';
@@ -7,7 +5,6 @@ import { Market } from '../../types';
 import type { AccountWithPlatform } from '../../types';
 
 export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
-  activities?: Activity[]; // Keep for backward compatibility
   alias?: string;
   hasDetails: boolean;
   holdings: {

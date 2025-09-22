@@ -1,5 +1,4 @@
 import { AccessService } from '@ghostfolio/api/app/access/access.service';
-import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { OrderService } from '@ghostfolio/api/app/order/order.service';
 import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.service';
 import { UserService } from '@ghostfolio/api/app/user/user.service';
@@ -129,7 +128,6 @@ export class PublicController {
     }));
 
     const publicPortfolioResponse: PublicPortfolioResponse = {
-      activities: isRestrictedExtended ? activities : activities.slice(0, 10), // Keep for backward compatibility
       latestActivities: isRestrictedExtended
         ? latestActivities
         : latestActivities.slice(0, 10), // New format compatible with PR #5538
@@ -154,11 +152,6 @@ export class PublicController {
       }
     };
 
-    // Feature flag intentionally always false to hide sensitive fields like
-    // account and notes/comment in activities when returning public portfolio
-    // responses. Keep the code path so it can be re-enabled later by setting
-    // the flag to true.
-    const SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC = false;
     const SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED = isRestrictedExtended;
 
     const totalValue = getSum(
@@ -203,28 +196,6 @@ export class PublicController {
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
       }
-    }
-    // If activities exist, map them into the public response but strip out
-    // account and comment fields unless the feature flag is enabled.
-    if (activities && Array.isArray(activities)) {
-      const activitiesToProcess = isRestrictedExtended
-        ? activities
-        : activities.slice(0, 10);
-
-      publicPortfolioResponse.activities = activitiesToProcess.map((act) => {
-        if (
-          SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC ||
-          SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED
-        ) {
-          return act;
-        }
-
-        // Create a shallow copy and remove potentially sensitive fields
-        const rest = { ...act };
-        delete (rest as any).account;
-        delete (rest as any).comment;
-        return rest as Activity;
-      });
     }
 
     return publicPortfolioResponse;

@@ -106,9 +106,9 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   // Check if activities have extended data (account and comment fields)
   public get hasExtendedActivityData(): boolean {
-    if (!this.publicPortfolioDetails?.activities?.length) return false;
+    if (!this.publicPortfolioDetails?.latestActivities?.length) return false;
 
-    const firstActivity = this.publicPortfolioDetails.activities[0];
+    const firstActivity = this.publicPortfolioDetails.latestActivities[0];
     return (
       firstActivity &&
       ('account' in firstActivity || 'comment' in firstActivity)
@@ -163,11 +163,7 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   public fetchActivities() {
     // Use activities from the public portfolio response
-    // First try latestActivities (PR #5538 format), fallback to activities (backward compatibility)
-    let allActivities =
-      this.publicPortfolioDetails?.latestActivities ||
-      this.publicPortfolioDetails?.activities ||
-      [];
+    let allActivities = this.publicPortfolioDetails?.latestActivities || [];
 
     // Apply sorting if specified
     if (this.activitiesSortColumn && this.activitiesSortDirection) {
