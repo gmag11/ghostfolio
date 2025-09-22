@@ -1,8 +1,8 @@
 import { AccessService } from '@ghostfolio/api/app/access/access.service';
-import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { OrderService } from '@ghostfolio/api/app/order/order.service';
 import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.service';
 import { UserService } from '@ghostfolio/api/app/user/user.service';
+import { RedactValuesInResponseInterceptor } from '@ghostfolio/api/interceptors/redact-values-in-response/redact-values-in-response.interceptor';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response/transform-data-source-in-response.interceptor';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
@@ -36,6 +36,7 @@ export class PublicController {
   ) {}
 
   @Get(':accessId/portfolio')
+  @UseInterceptors(RedactValuesInResponseInterceptor)
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   public async getPublicPortfolio(
     @Param('accessId') accessId
@@ -79,13 +80,15 @@ export class PublicController {
         });
       }),
       this.orderService.getOrders({
-        userId: access.userId,
-        userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
+        includeDrafts: false,
+        sortColumn: 'date',
+        sortDirection: 'desc',
         take: access.permissions.includes('READ_RESTRICTED_EXTENDED')
           ? undefined
           : 10,
-        sortColumn: 'date',
-        sortDirection: 'desc'
+        userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
+        userId: access.userId,
+        withExcludedAccountsAndActivities: false
       })
     ]);
 
@@ -104,8 +107,30 @@ export class PublicController {
       delete market.valueInBaseCurrency;
     });
 
+    // Transform activities to match PR #5538 format
+    const latestActivities = activities.map((a) => ({
+      account: a.account
+        ? {
+            currency: a.account.currency,
+            name: a.account.name,
+            platform: a.account.platform
+          }
+        : undefined,
+      currency: a.currency,
+      date: a.date,
+      fee: a.fee,
+      quantity: a.quantity,
+      SymbolProfile: a.SymbolProfile,
+      type: a.type,
+      unitPrice: a.unitPrice,
+      value: a.value,
+      valueInBaseCurrency: a.valueInBaseCurrency
+    }));
+
     const publicPortfolioResponse: PublicPortfolioResponse = {
-      activities: isRestrictedExtended ? activities : activities.slice(0, 10), // Get all activities for extended or only the last 10 for restricted
+      latestActivities: isRestrictedExtended
+        ? latestActivities
+        : latestActivities.slice(0, 10), // New format compatible with PR #5538
       createdAt,
       hasDetails,
       markets,
@@ -139,11 +164,6 @@ export class PublicController {
         : undefined
     };
 
-    // Feature flag intentionally always false to hide sensitive fields like
-    // account and notes/comment in activities when returning public portfolio
-    // responses. Keep the code path so it can be re-enabled later by setting
-    // the flag to true.
-    const SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC = false;
     const SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED = isRestrictedExtended;
 
     const totalValue = getSum(
@@ -188,28 +208,6 @@ export class PublicController {
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
       }
-    }
-    // If activities exist, map them into the public response but strip out
-    // account and comment fields unless the feature flag is enabled.
-    if (activities && Array.isArray(activities)) {
-      const activitiesToProcess = isRestrictedExtended
-        ? activities
-        : activities.slice(0, 10);
-
-      publicPortfolioResponse.activities = activitiesToProcess.map((act) => {
-        if (
-          SHOW_ACCOUNT_AND_NOTES_FOR_PUBLIC ||
-          SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED
-        ) {
-          return act;
-        }
-
-        // Create a shallow copy and remove potentially sensitive fields
-        const rest = { ...act };
-        delete (rest as any).account;
-        delete (rest as any).comment;
-        return rest as Activity;
-      });
     }
 
     return publicPortfolioResponse;

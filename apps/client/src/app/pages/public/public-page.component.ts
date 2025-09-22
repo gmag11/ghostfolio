@@ -1,4 +1,4 @@
-import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
+import type { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { UNKNOWN_KEY } from '@ghostfolio/common/config';
 import { prettifySymbol } from '@ghostfolio/common/helper';
@@ -106,9 +106,9 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   // Check if activities have extended data (account and comment fields)
   public get hasExtendedActivityData(): boolean {
-    if (!this.publicPortfolioDetails?.activities?.length) return false;
+    if (!this.publicPortfolioDetails?.latestActivities?.length) return false;
 
-    const firstActivity = this.publicPortfolioDetails.activities[0];
+    const firstActivity = this.publicPortfolioDetails.latestActivities[0];
     return (
       firstActivity &&
       ('account' in firstActivity || 'comment' in firstActivity)
@@ -180,7 +180,7 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
 
   public fetchActivities() {
     // Use activities from the public portfolio response
-    let allActivities = this.publicPortfolioDetails?.activities || [];
+    let allActivities = this.publicPortfolioDetails?.latestActivities || [];
 
     // Apply sorting if specified
     if (this.activitiesSortColumn && this.activitiesSortDirection) {
@@ -207,10 +207,7 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
     // Apply pagination - show 10 items per page
     const startIndex = this.activitiesPageIndex * this.activitiesPageSize;
     const endIndex = startIndex + this.activitiesPageSize;
-    let paginatedActivities: ActivityWithEmpty[] = allActivities.slice(
-      startIndex,
-      endIndex
-    );
+    let paginatedActivities: any[] = allActivities.slice(startIndex, endIndex);
 
     // Fill with empty activities to always show exactly activitiesPageSize rows
     const currentRowCount = paginatedActivities.length;
@@ -261,7 +258,7 @@ export class GfPublicPageComponent implements OnInit, OnDestroy {
     this.changeDetectorRef.detectChanges();
   }
 
-  private getSortValue(activity: Activity, column: string): any {
+  private getSortValue(activity: any, column: string): any {
     switch (column) {
       case 'date':
         return new Date(activity.date);
