@@ -2,12 +2,21 @@
   display: block;
 
   .gf-table {
+    table-layout: auto !important; // Allow columns to size based on content
+
     th {
       ::ng-deep {
         .mat-sort-header-container {
           justify-content: inherit;
         }
       }
+    }
+
+    // Specific styling for nameWithSymbol column to expand based on content
+    .mat-column-nameWithSymbol {
+      width: auto;
+      min-width: 150px; // Minimum width for readability
+      max-width: none; // No maximum width restriction
     }
   }
 }
