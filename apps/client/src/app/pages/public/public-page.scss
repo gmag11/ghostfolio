@@ -18,6 +18,18 @@
           min-height: 48px; // Ensure consistent row height
         }
 
+        // Allow nameWithSymbol column to expand based on content
+        .mat-column-nameWithSymbol {
+          width: auto !important;
+          min-width: 150px;
+          max-width: none;
+
+          .mat-mdc-cell {
+            overflow: visible !important;
+            white-space: nowrap;
+          }
+        }
+
         // Ensure empty rows don't affect column widths
         .mat-mdc-cell {
           overflow: hidden; // Prevent content overflow from affecting layout
