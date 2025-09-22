@@ -10,6 +10,7 @@ datasource db {
 }
 
 model Access {
+  accountIds    String[]           @default([])
   alias         String?
   createdAt     DateTime           @default(now())
   granteeUser   User?              @relation("accessGet", fields: [granteeUserId], onDelete: Cascade, references: [id])

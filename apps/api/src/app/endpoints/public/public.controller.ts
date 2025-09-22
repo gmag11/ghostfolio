@@ -56,13 +56,23 @@ export class PublicController {
       hasDetails = user.subscription.type === 'Premium';
     }
 
+    // Create account filters if accountIds are specified in access
+    const accountFilters =
+      (access as any).accountIds && (access as any).accountIds.length > 0
+        ? (access as any).accountIds.map((accountId) => ({
+            id: accountId,
+            type: 'ACCOUNT' as const
+          }))
+        : [];
+
     const [
-      { createdAt, holdings, markets },
-      { performance: performance1d },
-      { performance: performanceMax },
-      { performance: performanceYtd }
+      portfolioDetails,
+      performance1dResult,
+      performanceMaxResult,
+      performanceYtdResult
     ] = await Promise.all([
       this.portfolioService.getDetails({
+        filters: accountFilters,
         impersonationId: access.userId,
         userId: user.id,
         withMarkets: true
@@ -70,11 +80,17 @@ export class PublicController {
       ...['1d', 'max', 'ytd'].map((dateRange) => {
         return this.portfolioService.getPerformance({
           dateRange,
+          filters: accountFilters,
           impersonationId: undefined,
           userId: user.id
         });
       })
     ]);
+
+    const { createdAt, holdings, markets } = portfolioDetails;
+    const { performance: performance1d } = performance1dResult as any;
+    const { performance: performanceMax } = performanceMaxResult as any;
+    const { performance: performanceYtd } = performanceYtdResult as any;
 
     Object.values(markets ?? {}).forEach((market) => {
       delete market.valueInBaseCurrency;

@@ -84,6 +84,7 @@ export class AccessController {
 
     try {
       return this.accessService.createAccess({
+        accountIds: data.accounts || [],
         alias: data.alias || undefined,
         granteeUser: data.granteeUserId
           ? { connect: { id: data.granteeUserId } }
