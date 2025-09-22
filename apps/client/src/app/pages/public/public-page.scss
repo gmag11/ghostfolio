@@ -18,14 +18,86 @@
           min-height: 48px; // Ensure consistent row height
         }
 
+        // Column width optimization for public view
+        .mat-column-icon {
+          width: 50px;
+          max-width: 50px;
+        }
+
+        .mat-column-nameWithSymbol {
+          width: 25%; // Give more space to name column
+          min-width: 200px; // Ensure minimum readable width
+          max-width: none;
+        }
+
+        .mat-column-type {
+          width: 80px;
+          max-width: 80px;
+        }
+
+        .mat-column-date {
+          width: 110px;
+          max-width: 110px;
+        }
+
+        .mat-column-quantity {
+          width: 100px;
+          max-width: 100px;
+        }
+
+        .mat-column-unitPrice {
+          width: 100px;
+          max-width: 100px;
+        }
+
+        .mat-column-fee {
+          width: 80px;
+          max-width: 80px;
+        }
+
+        .mat-column-value {
+          width: 100px;
+          max-width: 100px;
+        }
+
+        .mat-column-currency {
+          width: 80px;
+          max-width: 80px;
+        }
+
+        .mat-column-account {
+          width: 120px;
+          max-width: 120px;
+        }
+
         // Ensure empty rows don't affect column widths
         .mat-mdc-cell {
           overflow: hidden; // Prevent content overflow from affecting layout
+          text-overflow: ellipsis; // Add ellipsis for very long text
+          white-space: nowrap;
 
           // For empty rows, ensure they maintain the same space as content rows
           &:empty::before {
             content: '\00a0'; // Non-breaking space to maintain cell dimensions
             opacity: 0; // Make it invisible
+          }
+        }
+
+        // Special handling for name column - allow text wrapping
+        .mat-column-nameWithSymbol .mat-mdc-cell {
+          white-space: normal;
+          word-break: break-word;
+          line-height: 1.2;
+          padding-top: 8px;
+          padding-bottom: 8px;
+
+          // Override text-truncate for better readability in public view
+          .text-truncate {
+            white-space: normal !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+            word-wrap: break-word;
+            max-width: none;
           }
         }
 
@@ -47,6 +119,29 @@
               position: absolute;
               pointer-events: none;
             }
+          }
+        }
+
+        // Responsive adjustments for smaller screens
+        @media (max-width: 1024px) {
+          .mat-column-nameWithSymbol {
+            width: 30%; // Give even more space on smaller screens
+            min-width: 150px;
+          }
+
+          .mat-column-quantity,
+          .mat-column-unitPrice,
+          .mat-column-fee,
+          .mat-column-value {
+            width: 90px;
+            max-width: 90px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .mat-column-nameWithSymbol {
+            width: 40%; // Maximum space on mobile
+            min-width: 120px;
           }
         }
       }
