@@ -72,7 +72,9 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
 
   private async createAccess() {
     console.log('Creating access...');
+    const selectedAccounts = this.accessForm.get('accounts').value || [];
     const access: CreateAccessDto = {
+      accounts: selectedAccounts.map((account: AccountWithValue) => account.id),
       alias: this.accessForm.get('alias').value,
       granteeUserId: this.accessForm.get('granteeUserId').value,
       permissions: [this.accessForm.get('permissions').value]
@@ -113,10 +115,29 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
   }
 
   public ngOnInit() {
+    // Fetch accounts first
+    this.dataService
+      .fetchAccounts()
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .subscribe((accountData) => {
+        this.accounts = accountData.accounts || [];
+
+        // If in edit mode and we have accountIds, pre-select them
+        if (this.isEditMode && this.data.access.accountIds) {
+          const preSelectedAccounts = this.accounts.filter((account) =>
+            this.data.access.accountIds.includes(account.id)
+          );
+          this.accessForm.get('accounts').setValue(preSelectedAccounts);
+        }
+
+        this.changeDetectorRef.markForCheck();
+      });
+
     this.accessForm = this.formBuilder.group({
       alias: [this.data.access.alias],
       granteeUserId: [this.data.access.grantee, Validators.required],
       permissions: [this.data.access.permissions[0], Validators.required],
+      accounts: [[]], // Add accounts form control
       type: [
         { value: this.data.access.type, disabled: this.isEditMode },
         Validators.required
