@@ -13,12 +13,10 @@ import {
   OnDestroy
 } from '@angular/core';
 import {
-  AbstractControl,
   FormBuilder,
   FormGroup,
   FormsModule,
   ReactiveFormsModule,
-  ValidationErrors,
   Validators
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -96,13 +94,8 @@ export class GfCreateOrUpdateAccessDialog implements OnDestroy {
       } else {
         granteeUserIdControl.clearValidators();
         permissionsControl.setValue(this.data.access.permissions[0]);
-        // Require at least one account for public access
-        accountsControl.setValidators([
-          Validators.required,
-          this.validateMinimumAccounts
-        ]);
-        // Mark as touched so validation message appears immediately
-        accountsControl.markAsTouched();
+        // Accounts are optional for public access - no accounts means all accounts
+        accountsControl.clearValidators();
       }
 
       granteeUserIdControl.updateValueAndValidity();
@@ -110,17 +103,6 @@ export class GfCreateOrUpdateAccessDialog implements OnDestroy {
 
       this.changeDetectorRef.markForCheck();
     });
-
-    // If initially set to PUBLIC, trigger validation immediately
-    if (this.accessForm.get('type').value === 'PUBLIC') {
-      const accountsControl = this.accessForm.get('accounts');
-      accountsControl.setValidators([
-        Validators.required,
-        this.validateMinimumAccounts
-      ]);
-      accountsControl.markAsTouched();
-      accountsControl.updateValueAndValidity();
-    }
   }
 
   public onCancel() {
@@ -131,20 +113,6 @@ export class GfCreateOrUpdateAccessDialog implements OnDestroy {
     const accountsControl = this.accessForm.get('accounts');
     accountsControl.setValue(accounts);
     accountsControl.markAsTouched();
-  }
-
-  private validateMinimumAccounts(
-    control: AbstractControl
-  ): ValidationErrors | null {
-    const accounts = control.value;
-    if (!accounts || accounts.length === 0) {
-      return {
-        minAccounts: {
-          message: 'At least one account must be selected for public access'
-        }
-      };
-    }
-    return null;
   }
 
   public async onSubmit() {

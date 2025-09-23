@@ -59,16 +59,11 @@
           [accountsAvailable]="accounts"
           (accountsChanged)="onAccountsChanged($event)"
         />
-        @if (
-          accessForm.get('accounts')?.invalid &&
-          accessForm.get('accounts')?.touched
-        ) {
-          <div class="text-danger mt-1">
-            <small i18n
-              >At least one account must be selected for public access</small
-            >
-          </div>
-        }
+        <div class="text-muted mt-1">
+          <small i18n
+            >If no accounts are selected, all accounts will be shared</small
+          >
+        </div>
       </div>
     }
   </div>
