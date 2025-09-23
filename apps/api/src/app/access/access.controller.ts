@@ -46,9 +46,10 @@ export class AccessController {
     });
 
     return accessesWithGranteeUser.map(
-      ({ alias, granteeUser, id, permissions }) => {
+      ({ accountIds, alias, granteeUser, id, permissions }) => {
         if (granteeUser) {
           return {
+            accountIds,
             alias,
             id,
             permissions,
@@ -58,6 +59,7 @@ export class AccessController {
         }
 
         return {
+          accountIds,
           alias,
           id,
           permissions,
@@ -101,6 +103,7 @@ export class AccessController {
 
     try {
       return this.accessService.createAccess({
+        accountIds: data.accounts || [],
         alias: data.alias || undefined,
         granteeUser: data.granteeUserId
           ? { connect: { id: data.granteeUserId } }
@@ -145,6 +148,7 @@ export class AccessController {
       return this.accessService.updateAccess(
         { id },
         {
+          accountIds: data.accounts || [],
           alias: data.alias,
           granteeUser: data.granteeUserId
             ? { connect: { id: data.granteeUserId } }

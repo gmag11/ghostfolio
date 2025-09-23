@@ -9,17 +9,14 @@ import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-
 import { DEFAULT_CURRENCY } from '@ghostfolio/common/config';
 import { getSum } from '@ghostfolio/common/helper';
 import { PublicPortfolioResponse } from '@ghostfolio/common/interfaces';
-import type { RequestWithUser } from '@ghostfolio/common/types';
 
 import {
   Controller,
   Get,
   HttpException,
-  Inject,
   Param,
   UseInterceptors
 } from '@nestjs/common';
-import { REQUEST } from '@nestjs/core';
 import { Big } from 'big.js';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
@@ -31,7 +28,6 @@ export class PublicController {
     private readonly exchangeRateDataService: ExchangeRateDataService,
     private readonly orderService: OrderService,
     private readonly portfolioService: PortfolioService,
-    @Inject(REQUEST) private readonly request: RequestWithUser,
     private readonly userService: UserService
   ) {}
 
@@ -60,6 +56,22 @@ export class PublicController {
       hasDetails = user.subscription.type === 'Premium';
     }
 
+    // Create account filters if accountIds are specified in access
+    const accountFilters =
+      (access as any).accountIds && (access as any).accountIds.length > 0
+        ? (access as any).accountIds.map((accountId) => ({
+            id: accountId,
+            type: 'ACCOUNT' as const
+          }))
+        : undefined;
+
+    const portfolioDetailsOptions = {
+      impersonationId: access.userId,
+      userId: user.id,
+      withMarkets: true,
+      ...(accountFilters && { filters: accountFilters })
+    };
+
     const [
       portfolioDetails,
       performance1dResult,
@@ -67,11 +79,7 @@ export class PublicController {
       performanceYtdResult,
       activitiesResult
     ] = await Promise.all([
-      this.portfolioService.getDetails({
-        impersonationId: access.userId,
-        userId: user.id,
-        withMarkets: true
-      }),
+      this.portfolioService.getDetails(portfolioDetailsOptions),
       ...['1d', 'max', 'ytd'].map((dateRange) => {
         return this.portfolioService.getPerformance({
           dateRange,
@@ -166,17 +174,21 @@ export class PublicController {
 
     const SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED = isRestrictedExtended;
 
+    const baseCurrency =
+      user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY;
+
     const totalValue = getSum(
-      Object.values(holdings).map(({ currency, marketPrice, quantity }) => {
-        return new Big(
-          this.exchangeRateDataService.toCurrency(
-            quantity * marketPrice,
-            currency,
-            this.request.user?.settings?.settings.baseCurrency ??
-              DEFAULT_CURRENCY
-          )
-        );
-      })
+      Object.entries(holdings)
+        .filter(([symbol]) => symbol !== baseCurrency) // Exclude base currency from total calculation
+        .map(([, { currency, marketPrice, quantity }]) => {
+          return new Big(
+            this.exchangeRateDataService.toCurrency(
+              quantity * marketPrice,
+              currency,
+              baseCurrency
+            )
+          );
+        })
     ).toNumber();
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {

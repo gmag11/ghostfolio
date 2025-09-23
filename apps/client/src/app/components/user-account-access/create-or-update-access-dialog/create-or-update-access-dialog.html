@@ -61,6 +61,19 @@
           />
         </mat-form-field>
       </div>
+    } @else {
+      <div>
+        <gf-accounts-selector
+          [accounts]="accessForm.get('accounts')?.value"
+          [accountsAvailable]="accounts"
+          (accountsChanged)="onAccountsChanged($event)"
+        />
+        <div class="text-muted mt-1">
+          <small i18n
+            >If no accounts are selected, all accounts will be shared</small
+          >
+        </div>
+      </div>
     }
   </div>
   <div class="justify-content-end" mat-dialog-actions>

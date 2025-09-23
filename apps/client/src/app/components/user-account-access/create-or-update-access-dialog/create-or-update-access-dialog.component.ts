@@ -3,6 +3,8 @@ import { UpdateAccessDto } from '@ghostfolio/api/app/access/update-access.dto';
 import { NotificationService } from '@ghostfolio/client/core/notification/notification.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { validateObjectForForm } from '@ghostfolio/client/util/form.util';
+import { AccountWithValue } from '@ghostfolio/common/types';
+import { GfAccountsSelectorComponent } from '@ghostfolio/ui/accounts-selector';
 
 import {
   ChangeDetectionStrategy,
@@ -38,6 +40,7 @@ import { CreateOrUpdateAccessDialogParams } from './interfaces/interfaces';
   host: { class: 'h-100' },
   imports: [
     FormsModule,
+    GfAccountsSelectorComponent,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -51,6 +54,7 @@ import { CreateOrUpdateAccessDialogParams } from './interfaces/interfaces';
 })
 export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
   public accessForm: FormGroup;
+  public accounts: AccountWithValue[] = [];
   public isEditMode: boolean;
 
   private unsubscribeSubject = new Subject<void>();
@@ -74,22 +78,46 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
       alias: [this.data.access.alias],
       permissions: [this.data.access.permissions[0], Validators.required],
       type: [this.data.access.type, Validators.required],
-      granteeUserId: [this.data.access.grantee, Validators.required]
+      granteeUserId: [this.data.access.grantee, Validators.required],
+      accounts: [[]]
     });
+
+    // Fetch accounts for the selector
+    this.dataService
+      .fetchAccounts()
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .subscribe(({ accounts }) => {
+        this.accounts = accounts;
+
+        // If we're in edit mode and have accountIds, select the corresponding accounts
+        if (this.isEditMode && this.data.access.accountIds?.length > 0) {
+          const selectedAccounts = accounts.filter((account) =>
+            this.data.access.accountIds.includes(account.id)
+          );
+          this.accessForm.get('accounts').setValue(selectedAccounts);
+        }
+
+        this.changeDetectorRef.markForCheck();
+      });
 
     this.accessForm.get('type').valueChanges.subscribe((accessType) => {
       const granteeUserIdControl = this.accessForm.get('granteeUserId');
       const permissionsControl = this.accessForm.get('permissions');
+      const accountsControl = this.accessForm.get('accounts');
 
       if (accessType === 'PRIVATE') {
         granteeUserIdControl.setValidators(Validators.required);
+        accountsControl.clearValidators();
       } else {
         granteeUserIdControl.clearValidators();
         granteeUserIdControl.setValue(null);
         permissionsControl.setValue(this.data.access.permissions[0]);
+        // Accounts are optional for public access - no accounts means all accounts
+        accountsControl.clearValidators();
       }
 
       granteeUserIdControl.updateValueAndValidity();
+      accountsControl.updateValueAndValidity();
 
       this.changeDetectorRef.markForCheck();
     });
@@ -107,6 +135,12 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
     this.dialogRef.close();
   }
 
+  public onAccountsChanged(accounts: AccountWithValue[]) {
+    const accountsControl = this.accessForm.get('accounts');
+    accountsControl.setValue(accounts);
+    accountsControl.markAsTouched();
+  }
+
   public async onSubmit() {
     if (!this.accessForm.valid) {
       console.error('Form is invalid:', this.accessForm.errors);
@@ -122,10 +156,12 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
 
   private async createAccess() {
     console.log('Creating access...');
+    const selectedAccounts = this.accessForm.get('accounts')?.value || [];
     const access: CreateAccessDto = {
-      alias: this.accessForm.get('alias').value,
-      granteeUserId: this.accessForm.get('granteeUserId').value,
-      permissions: [this.accessForm.get('permissions').value]
+      accounts: selectedAccounts.map((account: AccountWithValue) => account.id),
+      alias: this.accessForm.get('alias')?.value,
+      granteeUserId: this.accessForm.get('granteeUserId')?.value,
+      permissions: [this.accessForm.get('permissions')?.value]
     };
 
     console.log('Access data:', access);
@@ -161,10 +197,12 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
 
   private async updateAccess() {
     console.log('Updating access...');
+    const selectedAccounts = this.accessForm.get('accounts')?.value || [];
     const access: UpdateAccessDto = {
-      alias: this.accessForm.get('alias').value,
-      granteeUserId: this.accessForm.get('granteeUserId').value,
-      permissions: [this.accessForm.get('permissions').value]
+      accounts: selectedAccounts.map((account: AccountWithValue) => account.id),
+      alias: this.accessForm.get('alias')?.value,
+      granteeUserId: this.accessForm.get('granteeUserId')?.value,
+      permissions: [this.accessForm.get('permissions')?.value]
     };
 
     console.log('Access data:', access);
@@ -178,7 +216,7 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
       });
 
       this.dataService
-        .putAccess(this.data.accessId, access)
+        .putAccess(this.data.accessId!, access)
         .pipe(
           catchError((error) => {
             if (error.status === StatusCodes.BAD_REQUEST) {

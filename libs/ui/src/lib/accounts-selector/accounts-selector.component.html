@@ -1,0 +1,50 @@
+<div class="row">
+  <div class="col">
+    @if (readonly) {
+      <div class="h5" i18n>Accounts</div>
+      @if (accounts?.length > 0) {
+        <mat-chip-listbox>
+          @for (account of accounts; track account.id) {
+            <mat-chip-option disabled>{{ account.name }}</mat-chip-option>
+          }
+        </mat-chip-listbox>
+      } @else {
+        <div>-</div>
+      }
+    } @else {
+      <mat-form-field appearance="outline" class="w-100 without-hint">
+        <mat-label i18n>Accounts</mat-label>
+        <mat-chip-grid #accountsChipList>
+          @for (account of accountsSelected(); track account.id) {
+            <mat-chip-row
+              matChipRemove
+              [removable]="true"
+              (removed)="onRemoveAccount(account)"
+            >
+              {{ account.name }}
+              <ion-icon matChipTrailingIcon name="close-outline" />
+            </mat-chip-row>
+          }
+          <input
+            #accountInput
+            placeholder="New account..."
+            [formControl]="accountInputControl"
+            [matAutocomplete]="autocompleteAccounts"
+            [matChipInputFor]="accountsChipList"
+            [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+          />
+        </mat-chip-grid>
+        <mat-autocomplete
+          #autocompleteAccounts="matAutocomplete"
+          (optionSelected)="onAddAccount($event)"
+        >
+          @for (account of filteredOptions | async; track account.id) {
+            <mat-option [value]="account.id">
+              {{ account.name }}
+            </mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+    }
+  </div>
+</div>
