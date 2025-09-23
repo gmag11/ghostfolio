@@ -217,7 +217,8 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
                 alias: accessDetails.alias,
                 permissions: accessDetails.permissions,
                 type: accessDetails.granteeUser ? 'PRIVATE' : 'PUBLIC',
-                grantee: accessDetails.granteeUser?.id || null
+                grantee: accessDetails.granteeUser?.id || null,
+                accountIds: accessDetails.accountIds || []
               },
               accessId: accessId
             },

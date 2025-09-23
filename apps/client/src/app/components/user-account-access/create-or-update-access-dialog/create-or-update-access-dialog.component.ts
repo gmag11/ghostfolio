@@ -77,7 +77,10 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
     this.accessForm = this.formBuilder.group({
       alias: [this.data.access.alias],
       permissions: [this.data.access.permissions[0], Validators.required],
-      type: [this.data.access.type, Validators.required],
+      type: [
+        { value: this.data.access.type, disabled: this.isEditMode },
+        Validators.required
+      ],
       granteeUserId: [this.data.access.grantee, Validators.required],
       accounts: [[]]
     });
@@ -89,8 +92,12 @@ export class GfCreateOrUpdateAccessDialog implements OnInit, OnDestroy {
       .subscribe(({ accounts }) => {
         this.accounts = accounts;
 
-        // If we're in edit mode and have accountIds, select the corresponding accounts
-        if (this.isEditMode && this.data.access.accountIds?.length > 0) {
+        // If in edit mode and there are existing accountIds, set them in the form
+        if (
+          this.isEditMode &&
+          this.data.access.accountIds &&
+          this.data.access.accountIds.length > 0
+        ) {
           const selectedAccounts = accounts.filter((account) =>
             this.data.access.accountIds.includes(account.id)
           );
