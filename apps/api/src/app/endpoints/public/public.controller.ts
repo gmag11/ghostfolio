@@ -2,7 +2,6 @@ import { AccessService } from '@ghostfolio/api/app/access/access.service';
 import { OrderService } from '@ghostfolio/api/app/order/order.service';
 import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.service';
 import { UserService } from '@ghostfolio/api/app/user/user.service';
-import { RedactValuesInResponseInterceptor } from '@ghostfolio/api/interceptors/redact-values-in-response/redact-values-in-response.interceptor';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response/transform-data-source-in-response.interceptor';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
@@ -32,7 +31,6 @@ export class PublicController {
   ) {}
 
   @Get(':accessId/portfolio')
-  @UseInterceptors(RedactValuesInResponseInterceptor)
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   public async getPublicPortfolio(
     @Param('accessId') accessId
@@ -55,6 +53,11 @@ export class PublicController {
     if (this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION')) {
       hasDetails = user.subscription.type === 'Premium';
     }
+
+    // Check if this is READ_RESTRICTED_EXTENDED permission early
+    const isRestrictedExtended = access.permissions.includes(
+      'READ_RESTRICTED_EXTENDED'
+    );
 
     // Create account filters if accountIds are specified in access
     const accountFilters =
@@ -80,7 +83,7 @@ export class PublicController {
       activitiesResult
     ] = await Promise.all([
       this.portfolioService.getDetails(portfolioDetailsOptions),
-      ...['1d', 'max', 'ytd'].map((dateRange) => {
+      ...(['1d', 'max', 'ytd'] as const).map((dateRange) => {
         return this.portfolioService.getPerformance({
           dateRange,
           impersonationId: undefined,
@@ -91,9 +94,7 @@ export class PublicController {
         includeDrafts: false,
         sortColumn: 'date',
         sortDirection: 'desc',
-        take: access.permissions.includes('READ_RESTRICTED_EXTENDED')
-          ? undefined
-          : 10,
+        take: isRestrictedExtended ? undefined : 10,
         userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
         userId: access.userId,
         withExcludedAccountsAndActivities: false
@@ -105,11 +106,6 @@ export class PublicController {
     const { performance: performanceMax } = performanceMaxResult as any;
     const { performance: performanceYtd } = performanceYtdResult as any;
     const { activities } = activitiesResult as any;
-
-    // Check if this is READ_RESTRICTED_EXTENDED permission
-    const isRestrictedExtended = access.permissions.includes(
-      'READ_RESTRICTED_EXTENDED'
-    );
 
     Object.values(markets ?? {}).forEach((market) => {
       delete market.valueInBaseCurrency;
@@ -172,8 +168,6 @@ export class PublicController {
         : undefined
     };
 
-    const SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED = isRestrictedExtended;
-
     const baseCurrency =
       user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY;
 
@@ -193,7 +187,7 @@ export class PublicController {
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
       // For READ_RESTRICTED_EXTENDED, show all holding fields like in private view
-      if (SHOW_EXTENDED_DATA_FOR_RESTRICTED_EXTENDED) {
+      if (isRestrictedExtended) {
         publicPortfolioResponse.holdings[symbol] = {
           ...portfolioPosition,
           allocationInPercentage:
@@ -201,7 +195,8 @@ export class PublicController {
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
       } else {
-        // Original restricted logic
+        // For READ_RESTRICTED (non-extended), apply manual redacting
+        const shouldRedact = !hasDetails;
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,
@@ -217,7 +212,32 @@ export class PublicController {
           sectors: hasDetails ? portfolioPosition.sectors : [],
           symbol: portfolioPosition.symbol,
           url: portfolioPosition.url,
-          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
+          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue,
+          // Conditionally redact sensitive values for non-extended access
+          ...(shouldRedact && {
+            // These values should be null for restricted view
+            balance: null,
+            balanceInBaseCurrency: null,
+            convertedBalance: null,
+            dividendInBaseCurrency: null,
+            fee: null,
+            feeInBaseCurrency: null,
+            grossPerformance: null,
+            grossPerformanceWithCurrencyEffect: null,
+            interestInBaseCurrency: null,
+            investment: null,
+            netPerformance: null,
+            netPerformanceWithCurrencyEffect: null,
+            quantity: null,
+            totalBalanceInBaseCurrency: null,
+            totalDividendInBaseCurrency: null,
+            totalInterestInBaseCurrency: null,
+            totalValueInBaseCurrency: null,
+            unitPrice: null,
+            unitPriceInAssetProfileCurrency: null,
+            value: null,
+            valueInBaseCurrency: null
+          })
         };
       }
     }
