@@ -186,6 +186,11 @@ export class PublicController {
     ).toNumber();
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
+      // Skip base currency holdings in public view
+      if (symbol === baseCurrency) {
+        continue;
+      }
+
       // For READ_RESTRICTED_EXTENDED, show all holding fields like in private view
       if (isRestrictedExtended) {
         publicPortfolioResponse.holdings[symbol] = {
