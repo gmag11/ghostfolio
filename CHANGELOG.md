@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Removed the deprecated `ITEM` activity type
+
+## 2.202.0 - 2025-09-26
+
 ### Added
 
 - Added `settings` to the `Access` model
@@ -14,10 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Extended the tags selector component to support form control
+- Changed the deprecated `ITEM` activity type to `VALUABLE` in the create or update activity dialog
 
 ### Fixed
 
 - Fixed an issue where the save button was not enabled after editing tags in the create or update activity dialog
+- Fixed an issue in the investment calculation when selling all units of a holding
 
 ## 2.201.0 - 2025-09-24
 
