@@ -79,9 +79,11 @@ export class GfHoldingsTableComponent implements OnChanges, OnDestroy {
       this.displayedColumns.push('quantity');
     }
 
-    this.displayedColumns.push('averagePrice');
+    if (!this.isClosedHoldings) {
+      this.displayedColumns.push('averagePrice');
+    }
 
-    if (this.hasPermissionToShowValues) {
+    if (this.hasPermissionToShowValues && !this.isClosedHoldings) {
       this.displayedColumns.push('valueInBaseCurrency');
     }
 
