@@ -45,7 +45,7 @@ import {
 import { UserWithSettings } from '@ghostfolio/common/types';
 import { PerformanceCalculationType } from '@ghostfolio/common/types/performance-calculation-type.type';
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, forwardRef } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma, Role, User } from '@prisma/client';
 import { differenceInDays, subDays } from 'date-fns';
@@ -58,6 +58,7 @@ export class UserService {
     private readonly configurationService: ConfigurationService,
     private readonly eventEmitter: EventEmitter2,
     private readonly i18nService: I18nService,
+    @Inject(forwardRef(() => OrderService))
     private readonly orderService: OrderService,
     private readonly prismaService: PrismaService,
     private readonly propertyService: PropertyService,

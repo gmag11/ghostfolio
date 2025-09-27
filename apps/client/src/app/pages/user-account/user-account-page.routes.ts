@@ -1,4 +1,5 @@
 import { GfUserAccountAccessComponent } from '@ghostfolio/client/components/user-account-access/user-account-access.component';
+import { GfUserAccountCallbacksPageComponent } from '@ghostfolio/client/components/user-account-callbacks-page/user-account-callbacks-page.component';
 import { GfUserAccountMembershipComponent } from '@ghostfolio/client/components/user-account-membership/user-account-membership.component';
 import { GfUserAccountSettingsComponent } from '@ghostfolio/client/components/user-account-settings/user-account-settings.component';
 import { AuthGuard } from '@ghostfolio/client/core/auth.guard';
@@ -26,6 +27,11 @@ export const routes: Routes = [
         path: internalRoutes.account.subRoutes.access.path,
         component: GfUserAccountAccessComponent,
         title: internalRoutes.account.subRoutes.access.title
+      },
+      {
+        path: internalRoutes.account.subRoutes.callbacks.path,
+        component: GfUserAccountCallbacksPageComponent,
+        title: internalRoutes.account.subRoutes.callbacks.title
       }
     ],
     component: GfUserAccountPageComponent,

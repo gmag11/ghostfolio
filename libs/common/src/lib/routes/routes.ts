@@ -25,6 +25,11 @@ export const internalRoutes: Record<string, InternalRoute> = {
         routerLink: ['/account', 'access'],
         title: $localize`Access`
       },
+      callbacks: {
+        path: 'callbacks',
+        routerLink: ['/account', 'callbacks'],
+        title: $localize`Callbacks`
+      },
       membership: {
         path: 'membership',
         routerLink: ['/account', 'membership'],

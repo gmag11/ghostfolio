@@ -10,6 +10,7 @@ import { PerformanceCalculationType } from '@ghostfolio/common/types/performance
 import { AssetClass } from '@prisma/client';
 
 export interface UserSettings {
+  activityCallbackUrl?: string;
   annualInterestRate?: number;
   baseCurrency?: string;
   benchmark?: string;
