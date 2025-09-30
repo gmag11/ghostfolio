@@ -30,6 +30,7 @@ export interface UserSettings {
   performanceCalculationType?: PerformanceCalculationType;
   projectedTotalAmount?: number;
   retirementDate?: string;
+  safeWithdrawalRate?: number;
   savingsRate?: number;
   viewMode?: ViewMode;
   xRayRules?: XRayRulesSettings;
