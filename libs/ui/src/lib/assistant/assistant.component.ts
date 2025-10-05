@@ -1,4 +1,4 @@
-import { GfSymbolModule } from '@ghostfolio/client/pipes/symbol/symbol.module';
+import { GfSymbolPipe } from '@ghostfolio/client/pipes/symbol/symbol.pipe';
 import { AdminService } from '@ghostfolio/client/services/admin.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
@@ -74,7 +74,7 @@ import {
     FormsModule,
     GfAssistantListItemComponent,
     GfPortfolioFilterFormComponent,
-    GfSymbolModule,
+    GfSymbolPipe,
     IonIcon,
     MatButtonModule,
     MatFormFieldModule,
@@ -170,6 +170,8 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   };
   public tags: Filter[] = [];
 
+  private readonly PRESELECTION_DELAY = 100;
+
   private filterTypes: Filter['type'][] = [
     'ACCOUNT',
     'ASSET_CLASS',
@@ -177,7 +179,9 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
     'SYMBOL',
     'TAG'
   ];
+
   private keyManager: FocusKeyManager<GfAssistantListItemComponent>;
+  private preselectionTimeout: ReturnType<typeof setTimeout>;
   private unsubscribeSubject = new Subject<void>();
 
   public constructor(
@@ -344,6 +348,9 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       .subscribe({
         next: (searchResults) => {
           this.searchResults = searchResults;
+
+          this.preselectFirstItem();
+
           this.changeDetectorRef.markForCheck();
         },
         error: (error) => {
@@ -599,6 +606,10 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   public ngOnDestroy() {
+    if (this.preselectionTimeout) {
+      clearTimeout(this.preselectionTimeout);
+    }
+
     this.unsubscribeSubject.next();
     this.unsubscribeSubject.complete();
   }
@@ -607,6 +618,58 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
     return this.assistantListItems.find(({ getHasFocus }) => {
       return getHasFocus;
     });
+  }
+
+  private getFirstSearchResultItem() {
+    if (this.searchResults.quickLinks?.length > 0) {
+      return this.searchResults.quickLinks[0];
+    }
+
+    if (this.searchResults.accounts?.length > 0) {
+      return this.searchResults.accounts[0];
+    }
+
+    if (this.searchResults.holdings?.length > 0) {
+      return this.searchResults.holdings[0];
+    }
+
+    if (this.searchResults.assetProfiles?.length > 0) {
+      return this.searchResults.assetProfiles[0];
+    }
+
+    return null;
+  }
+
+  private preselectFirstItem() {
+    if (this.preselectionTimeout) {
+      clearTimeout(this.preselectionTimeout);
+    }
+
+    this.preselectionTimeout = setTimeout(() => {
+      if (!this.isOpen || !this.searchFormControl.value) {
+        return;
+      }
+
+      const firstItem = this.getFirstSearchResultItem();
+
+      if (!firstItem) {
+        return;
+      }
+
+      for (const item of this.assistantListItems) {
+        item.removeFocus();
+      }
+
+      this.keyManager.setFirstItemActive();
+
+      const currentFocusedItem = this.getCurrentAssistantListItem();
+
+      if (currentFocusedItem) {
+        currentFocusedItem.focus();
+      }
+
+      this.changeDetectorRef.markForCheck();
+    }, this.PRESELECTION_DELAY);
   }
 
   private searchAccounts(aSearchTerm: string): Observable<ISearchResultItem[]> {
