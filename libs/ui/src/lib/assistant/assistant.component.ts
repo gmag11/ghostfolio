@@ -1,4 +1,3 @@
-import { GfSymbolPipe } from '@ghostfolio/client/pipes/symbol/symbol.pipe';
 import { AdminService } from '@ghostfolio/client/services/admin.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
 import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
@@ -74,7 +73,6 @@ import {
     FormsModule,
     GfAssistantListItemComponent,
     GfPortfolioFilterFormComponent,
-    GfSymbolPipe,
     IonIcon,
     MatButtonModule,
     MatFormFieldModule,

@@ -110,6 +110,10 @@ export class GfCreateOrUpdateAccessDialogComponent
     }
   }
 
+  public onCancel() {
+    this.dialogRef.close();
+  }
+
   public async onSubmit() {
     if (this.mode === 'create') {
       await this.createAccess();

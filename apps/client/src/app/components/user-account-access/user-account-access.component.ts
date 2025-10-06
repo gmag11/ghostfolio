@@ -140,10 +140,6 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
       });
   }
 
-  public onUpdateAccess(aId: string) {
-    this.openUpdateAccessDialog(aId);
-  }
-
   public onGenerateAccessToken() {
     this.notificationService.confirm({
       confirmFn: () => {
