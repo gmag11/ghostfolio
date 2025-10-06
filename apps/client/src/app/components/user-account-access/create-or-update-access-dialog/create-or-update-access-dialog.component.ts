@@ -100,14 +100,10 @@ export class GfCreateOrUpdateAccessDialogComponent
 
       this.changeDetectorRef.markForCheck();
     });
+  }
 
-    // Initial validation setup based on current type
-    if (this.accessForm.get('type').value === 'PUBLIC') {
-      const granteeUserIdControl = this.accessForm.get('granteeUserId');
-      granteeUserIdControl.clearValidators();
-      granteeUserIdControl.setValue(null);
-      granteeUserIdControl.updateValueAndValidity();
-    }
+  public onCancel() {
+    this.dialogRef.close();
   }
 
   public onCancel() {
