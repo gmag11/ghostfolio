@@ -115,8 +115,8 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
       .subscribe((params) => {
         if (params['createDialog']) {
           this.openCreateAccessDialog();
-        } else if (params['editDialog']) {
-          this.openUpdateAccessDialog(params['editDialog']);
+        } else if (params['editDialog'] && params['accessId']) {
+          this.openUpdateAccessDialog(params['accessId']);
         }
       });
 
@@ -179,6 +179,12 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
     });
   }
 
+  public onUpdateAccess(aId: string) {
+    this.router.navigate([], {
+      queryParams: { accessId: aId, editDialog: true }
+    });
+  }
+
   public ngOnDestroy() {
     this.unsubscribeSubject.next();
     this.unsubscribeSubject.complete();
@@ -207,27 +213,24 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
   }
 
   private openUpdateAccessDialog(accessId: string) {
-    // Find the access details in the already loaded data
-    const accessDetails = this.accessesGive.find(
-      (access) => access.id === accessId
-    );
+    const access = this.accessesGive?.find(({ id }) => {
+      return id === accessId;
+    });
 
-    if (!accessDetails) {
-      this.notificationService.alert({
-        title: $localize`Oops! Could not find access details.`
-      });
+    if (!access) {
+      console.log('Could not find access.');
+
       return;
     }
 
     const dialogRef = this.dialog.open(GfCreateOrUpdateAccessDialogComponent, {
       data: {
         access: {
-          id: accessDetails.id,
-          alias: accessDetails.alias,
-          permissions: accessDetails.permissions,
-          type: accessDetails.type,
-          grantee:
-            accessDetails.grantee === 'Public' ? null : accessDetails.grantee
+          alias: access.alias,
+          id: access.id,
+          grantee: access.grantee === 'Public' ? null : access.grantee,
+          permissions: access.permissions,
+          type: access.type
         }
       },
       height: this.deviceType === 'mobile' ? '98vh' : undefined,
@@ -238,6 +241,8 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
       if (result) {
         this.update();
       }
+
+      this.router.navigate(['.'], { relativeTo: this.route });
     });
   }
 

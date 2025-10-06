@@ -41,10 +41,7 @@ export class AccessController {
       include: {
         granteeUser: true
       },
-      orderBy: [
-        { granteeUserId: 'desc' }, // NULL values first (public access), then user IDs
-        { createdAt: 'asc' } // Within each group, order by creation time
-      ],
+      orderBy: [{ granteeUserId: 'desc' }, { createdAt: 'asc' }],
       where: { userId: this.request.user.id }
     });
 
@@ -129,8 +126,8 @@ export class AccessController {
   @Put(':id')
   @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
   public async updateAccess(
-    @Param('id') id: string,
-    @Body() data: UpdateAccessDto
+    @Body() data: UpdateAccessDto,
+    @Param('id') id: string
   ): Promise<AccessModel> {
     if (
       this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION') &&
