@@ -119,12 +119,12 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
     }
   }
 
+  @Input() accountsWithValue: AccountWithValue[] = [];
   @Input() deviceType: string;
   @Input() hasPermissionToAccessAdminControl: boolean;
   @Input() hasPermissionToChangeDateRange: boolean;
   @Input() hasPermissionToChangeFilters: boolean;
   @Input() user: User;
-  @Input() accountsWithValue: AccountWithValue[] = [];
 
   @Output() closed = new EventEmitter<void>();
   @Output() dateRangeChanged = new EventEmitter<DateRange>();
@@ -142,14 +142,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   public assetClasses: Filter[] = [];
   public dateRangeFormControl = new FormControl<string>(undefined);
   public dateRangeOptions: IDateRangeOption[] = [];
-  public portfolioFilterFormControl = new FormControl<PortfolioFilterFormValue>(
-    {
-      account: null,
-      assetClass: null,
-      holding: null,
-      tag: null
-    }
-  );
   public holdings: PortfolioPosition[] = [];
   public isLoading = {
     accounts: false,
@@ -159,6 +151,14 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   };
   public isOpen = false;
   public placeholder = $localize`Find account, holding or page...`;
+  public portfolioFilterFormControl = new FormControl<PortfolioFilterFormValue>(
+    {
+      account: null,
+      assetClass: null,
+      holding: null,
+      tag: null
+    }
+  );
   public searchFormControl = new FormControl('');
   public searchResults: ISearchResults = {
     accounts: [],
@@ -242,7 +242,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
             );
           }
 
-          // Accounts
           const accounts$: Observable<Partial<ISearchResults>> =
             this.searchAccounts(searchTerm).pipe(
               map((accounts) => ({
@@ -261,7 +260,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
               })
             );
 
-          // Asset profiles
           const assetProfiles$: Observable<Partial<ISearchResults>> = this
             .hasPermissionToAccessAdminControl
             ? this.searchAssetProfiles(searchTerm).pipe(
@@ -290,7 +288,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
                 })
               );
 
-          // Holdings
           const holdings$: Observable<Partial<ISearchResults>> =
             this.searchHoldings(searchTerm).pipe(
               map((holdings) => ({
@@ -309,7 +306,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
               })
             );
 
-          // Quick links
           const quickLinks$: Observable<Partial<ISearchResults>> = of(
             this.searchQuickLinks(searchTerm)
           ).pipe(
@@ -325,7 +321,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
             })
           );
 
-          // Merge all results
           return merge(accounts$, assetProfiles$, holdings$, quickLinks$).pipe(
             scan(
               (acc: ISearchResults, curr: Partial<ISearchResults>) => ({
@@ -360,25 +355,14 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
             quickLinks: []
           };
           this.changeDetectorRef.markForCheck();
-        },
-        complete: () => {
-          this.isLoading = {
-            accounts: false,
-            assetProfiles: false,
-            holdings: false,
-            quickLinks: false
-          };
-          this.changeDetectorRef.markForCheck();
         }
       });
   }
 
   public ngOnChanges() {
-    // Use accountsWithValue if provided, otherwise transform user.accounts as fallback
     if (this.accountsWithValue?.length > 0) {
       this.accounts = this.accountsWithValue;
     } else {
-      // Transform basic accounts to AccountWithValue format for compatibility
       this.accounts = (this.user?.accounts ?? []).map((account) => ({
         ...account,
         allocationInPercentage: 0,
@@ -388,7 +372,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
         platform: account.platformId
           ? {
               id: account.platformId,
-              name: account.platformId, // Fallback, ideally should be resolved
+              name: account.platformId,
               url: ''
             }
           : undefined,
@@ -398,7 +382,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       })) as AccountWithValue[];
     }
 
-    // Handle portfolio filter form disabled state
     if (this.hasPermissionToChangeFilters) {
       this.portfolioFilterFormControl.enable({ emitEvent: false });
     } else {
@@ -486,12 +469,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
         }) ?? [];
   }
 
-  public hasFilter(aFormValue: { [key: string]: string }) {
-    return Object.values(aFormValue).some((value) => {
-      return !!value;
-    });
-  }
-
   public initialize() {
     this.isLoading = {
       accounts: true,
@@ -535,6 +512,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
           .sort((a, b) => {
             return a.name?.localeCompare(b.name);
           });
+
         this.setPortfolioFilterFormValues();
 
         this.changeDetectorRef.markForCheck();
@@ -574,18 +552,14 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   public onCloseAssistant() {
+    this.portfolioFilterFormControl.reset();
     this.setIsOpen(false);
 
     this.closed.emit();
   }
 
   public onResetFilters() {
-    this.portfolioFilterFormControl.setValue({
-      account: null,
-      assetClass: null,
-      holding: null,
-      tag: null
-    });
+    this.portfolioFilterFormControl.reset();
 
     this.filtersChanged.emit(
       this.filterTypes.map((type) => {

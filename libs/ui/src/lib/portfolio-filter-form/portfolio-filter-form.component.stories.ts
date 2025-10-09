@@ -36,27 +36,27 @@ export const Default: Story = {
       }
     ] as any,
     assetClasses: [
+      { id: 'COMMODITY', label: 'Commodity', type: 'ASSET_CLASS' },
       { id: 'EQUITY', label: 'Equity', type: 'ASSET_CLASS' },
-      { id: 'FIXED_INCOME', label: 'Fixed Income', type: 'ASSET_CLASS' },
-      { id: 'COMMODITY', label: 'Commodity', type: 'ASSET_CLASS' }
+      { id: 'FIXED_INCOME', label: 'Fixed Income', type: 'ASSET_CLASS' }
     ] as any,
     holdings: [
       {
-        name: 'Apple Inc.',
-        symbol: 'AAPL',
         currency: 'USD',
-        dataSource: 'YAHOO'
+        dataSource: 'YAHOO',
+        name: 'Apple Inc.',
+        symbol: 'AAPL'
       },
       {
-        name: 'Microsoft Corporation',
-        symbol: 'MSFT',
         currency: 'USD',
-        dataSource: 'YAHOO'
+        dataSource: 'YAHOO',
+        name: 'Microsoft Corporation',
+        symbol: 'MSFT'
       }
     ] as any,
     tags: [
-      { id: 'tech', label: 'Technology', type: 'TAG' },
-      { id: 'dividend', label: 'Dividend', type: 'TAG' }
+      { id: 'dividend', label: 'Dividend', type: 'TAG' },
+      { id: 'tech', label: 'Technology', type: 'TAG' }
     ] as any,
     disabled: false
   }

@@ -1,4 +1,4 @@
-<form class="gf-portfolio-filter-form" [formGroup]="filterForm">
+<form [formGroup]="filterForm">
   <div class="mb-3">
     <mat-form-field appearance="outline" class="w-100 without-hint">
       <mat-label i18n>Account</mat-label>
@@ -72,24 +72,5 @@
       </mat-select>
     </mat-form-field>
   </div>
-  <div class="d-flex w-100">
-    <button
-      i18n
-      mat-button
-      [disabled]="!hasFilters() || disabled"
-      (click)="onResetFilters()"
-    >
-      Reset Filters
-    </button>
-    <span class="gf-spacer"></span>
-    <button
-      color="primary"
-      i18n
-      mat-flat-button
-      [disabled]="!filterForm.dirty || disabled"
-      (click)="onApplyFilters()"
-    >
-      Apply Filters
-    </button>
-  </div>
+  <ng-content select="[gfPortfolioFilterActions]"></ng-content>
 </form>
