@@ -1,7 +1,7 @@
 import { GfSymbolPipe } from '@ghostfolio/client/pipes/symbol/symbol.pipe';
 import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
 import { Filter, PortfolioPosition } from '@ghostfolio/common/interfaces';
-import { AccountWithValue } from '@ghostfolio/common/types';
+import { AccountWithPlatform } from '@ghostfolio/common/types';
 
 import {
   CUSTOM_ELEMENTS_SCHEMA,
@@ -59,7 +59,7 @@ import { PortfolioFilterFormValue } from './interfaces';
 export class GfPortfolioFilterFormComponent
   implements ControlValueAccessor, OnInit, OnChanges, OnDestroy
 {
-  @Input() accounts: AccountWithValue[] = [];
+  @Input() accounts: AccountWithPlatform[] = [];
   @Input() assetClasses: Filter[] = [];
   @Input() holdings: PortfolioPosition[] = [];
   @Input() tags: Filter[] = [];
@@ -98,7 +98,7 @@ export class GfPortfolioFilterFormComponent
       });
   }
 
-  public hasFilters(): boolean {
+  public hasFilters() {
     const formValue = this.filterForm.value;
 
     return Object.values(formValue).some((value) => {
@@ -109,7 +109,7 @@ export class GfPortfolioFilterFormComponent
   public holdingComparisonFunction(
     option: PortfolioPosition,
     value: PortfolioPosition
-  ): boolean {
+  ) {
     if (value === null) {
       return false;
     }
@@ -126,33 +126,36 @@ export class GfPortfolioFilterFormComponent
       this.filterForm.enable({ emitEvent: false });
     }
 
+    const tagControl = this.filterForm.get('tag');
     if (this.tags.length === 0) {
-      this.filterForm.get('tag')?.disable({ emitEvent: false });
+      tagControl?.disable({ emitEvent: false });
+    } else if (!this.disabled) {
+      tagControl?.enable({ emitEvent: false });
     }
 
     this.changeDetectorRef.markForCheck();
   }
 
-  public onApplyFilters(): void {
+  public onApplyFilters() {
     this.filterForm.markAsPristine();
     this.onChange(this.filterForm.value as PortfolioFilterFormValue);
     this.applyFilters.emit();
   }
 
-  public onResetFilters(): void {
+  public onResetFilters() {
     this.filterForm.reset({}, { emitEvent: true });
     this.resetFilters.emit();
   }
 
-  public registerOnChange(fn: (value: PortfolioFilterFormValue) => void): void {
+  public registerOnChange(fn: (value: PortfolioFilterFormValue) => void) {
     this.onChange = fn;
   }
 
-  public registerOnTouched(fn: () => void): void {
+  public registerOnTouched(fn: () => void) {
     this.onTouched = fn;
   }
 
-  public setDisabledState(isDisabled: boolean): void {
+  public setDisabledState(isDisabled: boolean) {
     this.disabled = isDisabled;
 
     if (this.disabled) {
@@ -164,7 +167,7 @@ export class GfPortfolioFilterFormComponent
     this.changeDetectorRef.markForCheck();
   }
 
-  public writeValue(value: PortfolioFilterFormValue | null): void {
+  public writeValue(value: PortfolioFilterFormValue | null) {
     if (value) {
       this.filterForm.setValue(
         {

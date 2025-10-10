@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Extracted the portfolio filter form to a reusable component used in the assistant
 - Refactored various components to use self-closing tags
 
 ### Fixed
@@ -30,7 +31,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Extracted Portfolio Fliter Form as a reusable component
 - Improved the spacing around the buttons in the holding detail dialog
 - Extended the _Storybook_ stories of the accounts table component by a loading state story
 - Refactored the auth page to standalone

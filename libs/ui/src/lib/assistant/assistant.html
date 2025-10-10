@@ -172,8 +172,10 @@
           [formControl]="dateRangeFormControl"
           (selectionChange)="onChangeDateRange($event.value)"
         >
-          @for (range of dateRangeOptions; track range) {
-            <mat-option [value]="range.value">{{ range.label }}</mat-option>
+          @for (dateRangeOption of dateRangeOptions; track dateRangeOption) {
+            <mat-option [value]="dateRangeOption.value">{{
+              dateRangeOption.label
+            }}</mat-option>
           }
         </mat-select>
       </mat-form-field>
@@ -181,9 +183,8 @@
     <div class="p-3">
       <gf-portfolio-filter-form
         #portfolioFilterForm
-        [accounts]="accounts"
+        [accounts]="user?.accounts"
         [assetClasses]="assetClasses"
-        [disabled]="!hasPermissionToChangeFilters"
         [formControl]="portfolioFilterFormControl"
         [holdings]="holdings"
         [tags]="tags"
