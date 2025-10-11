@@ -1,4 +1,5 @@
 import { CreateAccessDto } from '@ghostfolio/api/app/access/create-access.dto';
+import { UpdateAccessDto } from '@ghostfolio/api/app/access/update-access.dto';
 import { CreateAccountBalanceDto } from '@ghostfolio/api/app/account-balance/create-account-balance.dto';
 import { CreateAccountDto } from '@ghostfolio/api/app/account/create-account.dto';
 import { TransferBalanceDto } from '@ghostfolio/api/app/account/transfer-balance.dto';
@@ -512,48 +513,6 @@ export class DataService {
     );
   }
 
-  public fetchSymbolItem({
-    dataSource,
-    includeHistoricalData,
-    symbol
-  }: {
-    dataSource: DataSource | string;
-    includeHistoricalData?: number;
-    symbol: string;
-  }) {
-    let params = new HttpParams();
-
-    if (includeHistoricalData) {
-      params = params.append('includeHistoricalData', includeHistoricalData);
-    }
-
-    return this.http.get<SymbolItem>(`/api/v1/symbol/${dataSource}/${symbol}`, {
-      params
-    });
-  }
-
-  public fetchSymbols({
-    includeIndices = false,
-    query
-  }: {
-    includeIndices?: boolean;
-    query: string;
-  }) {
-    let params = new HttpParams().set('query', query);
-
-    if (includeIndices) {
-      params = params.append('includeIndices', includeIndices);
-    }
-
-    return this.http
-      .get<LookupResponse>('/api/v1/symbol/lookup', { params })
-      .pipe(
-        map(({ items }) => {
-          return items;
-        })
-      );
-  }
-
   public fetchPortfolioDetails({
     filters,
     withMarkets = false
@@ -725,6 +684,48 @@ export class DataService {
       );
   }
 
+  public fetchSymbolItem({
+    dataSource,
+    includeHistoricalData,
+    symbol
+  }: {
+    dataSource: DataSource | string;
+    includeHistoricalData?: number;
+    symbol: string;
+  }) {
+    let params = new HttpParams();
+
+    if (includeHistoricalData) {
+      params = params.append('includeHistoricalData', includeHistoricalData);
+    }
+
+    return this.http.get<SymbolItem>(`/api/v1/symbol/${dataSource}/${symbol}`, {
+      params
+    });
+  }
+
+  public fetchSymbols({
+    includeIndices = false,
+    query
+  }: {
+    includeIndices?: boolean;
+    query: string;
+  }) {
+    let params = new HttpParams().set('query', query);
+
+    if (includeIndices) {
+      params = params.append('includeIndices', includeIndices);
+    }
+
+    return this.http
+      .get<LookupResponse>('/api/v1/symbol/lookup', { params })
+      .pipe(
+        map(({ items }) => {
+          return items;
+        })
+      );
+  }
+
   public fetchTags() {
     return this.http.get<Tag[]>('/api/v1/tags');
   }
@@ -790,6 +791,10 @@ export class DataService {
 
   public postWatchlistItem(watchlistItem: CreateWatchlistItemDto) {
     return this.http.post('/api/v1/watchlist', watchlistItem);
+  }
+
+  public putAccess(aAccess: UpdateAccessDto) {
+    return this.http.put<Access>(`/api/v1/access/${aAccess.id}`, aAccess);
   }
 
   public putAccount(aAccount: UpdateAccountDto) {
