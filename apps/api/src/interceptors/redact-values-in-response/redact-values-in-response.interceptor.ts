@@ -1,7 +1,7 @@
 import { redactAttributes } from '@ghostfolio/api/helper/object.helper';
 import { HEADER_KEY_IMPERSONATION } from '@ghostfolio/common/config';
 import {
-  hasReadRestrictedAccessPermission,
+  hasReadRestrictedOnlyAccessPermission,
   isRestrictedView
 } from '@ghostfolio/common/permissions';
 import { UserWithSettings } from '@ghostfolio/common/types';
@@ -31,13 +31,13 @@ export class RedactValuesInResponseInterceptor<T>
         const impersonationId =
           headers?.[HEADER_KEY_IMPERSONATION.toLowerCase()];
 
-        if (
-          hasReadRestrictedAccessPermission({
+        const shouldRedact =
+          hasReadRestrictedOnlyAccessPermission({
             impersonationId,
             user
-          }) ||
-          isRestrictedView(user)
-        ) {
+          }) || isRestrictedView(user);
+
+        if (shouldRedact) {
           data = redactAttributes({
             object: data,
             options: [

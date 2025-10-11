@@ -201,6 +201,30 @@ export function hasReadRestrictedAccessPermission({
   );
 }
 
+export function hasReadRestrictedOnlyAccessPermission({
+  impersonationId,
+  user
+}: {
+  impersonationId: string;
+  user: UserWithSettings;
+}) {
+  if (!impersonationId) {
+    return false;
+  }
+
+  const access = user.accessesGet?.find(({ id }) => {
+    return id === impersonationId;
+  });
+
+  return (
+    (access?.permissions?.includes(AccessPermission.READ_RESTRICTED) &&
+      !access?.permissions?.includes(
+        'READ_RESTRICTED_EXTENDED' as AccessPermission
+      )) ??
+    false
+  );
+}
+
 export function hasRole(aUser: UserWithSettings, aRole: Role) {
   return aUser?.role === aRole;
 }

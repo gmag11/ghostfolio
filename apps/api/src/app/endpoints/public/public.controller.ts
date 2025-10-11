@@ -2,7 +2,6 @@ import { AccessService } from '@ghostfolio/api/app/access/access.service';
 import { OrderService } from '@ghostfolio/api/app/order/order.service';
 import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.service';
 import { UserService } from '@ghostfolio/api/app/user/user.service';
-import { RedactValuesInResponseInterceptor } from '@ghostfolio/api/interceptors/redact-values-in-response/redact-values-in-response.interceptor';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response/transform-data-source-in-response.interceptor';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
@@ -37,7 +36,6 @@ export class PublicController {
   ) {}
 
   @Get(':accessId/portfolio')
-  @UseInterceptors(RedactValuesInResponseInterceptor)
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   public async getPublicPortfolio(
     @Param('accessId') accessId: string
@@ -61,7 +59,6 @@ export class PublicController {
       hasDetails = user.subscription.type === 'Premium';
     }
 
-    // Check if this is READ_RESTRICTED_EXTENDED permission
     const isExtendedView = access.permissions.includes(
       'READ_RESTRICTED_EXTENDED' as any
     );
@@ -86,7 +83,6 @@ export class PublicController {
       })
     ]);
 
-    // Get activities based on permission - extended view gets all activities
     const { activities } = await this.orderService.getOrders({
       includeDrafts: false,
       sortColumn: 'date',
@@ -94,41 +90,46 @@ export class PublicController {
       take: isExtendedView ? undefined : 10,
       types: [ActivityType.BUY, ActivityType.SELL],
       userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
-      userId: user.id,
+      userId: access.userId,
       withExcludedAccountsAndActivities: false
     });
 
-    // Transform activities to include additional fields for extended view
     const processedActivities = activities.map((activity) => {
-      const baseActivity = {
-        currency: activity.currency,
-        date: activity.date,
-        fee: activity.fee,
-        quantity: activity.quantity,
-        SymbolProfile: activity.SymbolProfile,
-        type: activity.type,
-        unitPrice: activity.unitPrice,
-        value: activity.value,
-        valueInBaseCurrency: activity.valueInBaseCurrency
-      };
-
-      // For extended view, include account information
-      if (isExtendedView && activity.account) {
+      if (isExtendedView) {
         return {
-          ...baseActivity,
-          account: {
-            currency: activity.account.currency,
-            name: activity.account.name,
-            platform: activity.account.platform
-          },
-          comment: activity.comment
+          account: activity.account
+            ? {
+                currency: activity.account.currency,
+                name: activity.account.name,
+                platform: activity.account.platform
+              }
+            : null,
+          comment: activity.comment || null,
+          currency: activity.currency,
+          date: activity.date,
+          fee: activity.fee,
+          quantity: activity.quantity,
+          SymbolProfile: activity.SymbolProfile,
+          type: activity.type,
+          unitPrice: activity.unitPrice,
+          value: activity.value,
+          valueInBaseCurrency: activity.valueInBaseCurrency
         };
       }
 
-      return baseActivity;
+      return {
+        currency: activity.currency,
+        date: activity.date,
+        fee: null,
+        quantity: null,
+        SymbolProfile: activity.SymbolProfile,
+        type: activity.type,
+        unitPrice: null,
+        value: null,
+        valueInBaseCurrency: null
+      };
     });
 
-    // Experimental - use latestActivities format
     const latestActivities = this.configurationService.get(
       'ENABLE_FEATURE_SUBSCRIPTION'
     )
@@ -177,29 +178,13 @@ export class PublicController {
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
       if (isExtendedView) {
-        // For extended view, include additional available holding fields
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,
-          assetClass: portfolioPosition.assetClass,
-          countries: portfolioPosition.countries,
-          currency: portfolioPosition.currency,
-          dataSource: portfolioPosition.dataSource,
-          dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
-          markets: portfolioPosition.markets,
-          name: portfolioPosition.name,
-          netPerformancePercentWithCurrencyEffect:
-            portfolioPosition.netPerformancePercentWithCurrencyEffect,
-          sectors: portfolioPosition.sectors,
-          symbol: portfolioPosition.symbol,
-          url: portfolioPosition.url,
-          valueInBaseCurrency: portfolioPosition.valueInBaseCurrency,
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue,
-          // Additional fields for extended view (cast to any to bypass interface restrictions)
           ...(portfolioPosition as any)
         };
       } else {
-        // Original restricted logic
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,

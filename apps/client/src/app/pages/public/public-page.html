@@ -223,10 +223,13 @@
             [hasPermissionToDeleteActivity]="false"
             [hasPermissionToExportActivities]="false"
             [hasPermissionToOpenDetails]="false"
+            [pageIndex]="activitiesPageIndex"
             [pageSize]="activitiesPageSize"
             [showAccountColumn]="hasExtendedActivityData"
             [showActions]="false"
             [sortDisabled]="false"
+            [totalItems]="activitiesTotalItems"
+            (pageChanged)="onActivitiesPageChanged($event)"
           />
         </mat-card-content>
       </mat-card>
