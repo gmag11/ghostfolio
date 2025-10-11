@@ -80,10 +80,10 @@
           <gf-holdings-table
             [deviceType]="deviceType"
             [hasPermissionToOpenDetails]="false"
-            [hasPermissionToShowQuantities]="false"
-            [hasPermissionToShowValues]="false"
+            [hasPermissionToShowQuantities]="isExtendedView"
+            [hasPermissionToShowValues]="isExtendedView"
             [holdings]="holdings"
-            [pageSize]="7"
+            [pageSize]="holdingsPageSize"
           />
         </mat-card-content>
       </mat-card>
@@ -207,9 +207,13 @@
     <div class="col-md-12">
       <mat-card appearance="outlined">
         <mat-card-header class="overflow-hidden w-100">
-          <mat-card-title class="text-truncate" i18n
-            >Latest activities</mat-card-title
-          >
+          <mat-card-title class="text-truncate">
+            @if (isExtendedView) {
+              <ng-container i18n>Activities</ng-container>
+            } @else {
+              <ng-container i18n>Latest activities</ng-container>
+            }
+          </mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <gf-activities-table
@@ -219,10 +223,10 @@
             [hasPermissionToDeleteActivity]="false"
             [hasPermissionToExportActivities]="false"
             [hasPermissionToOpenDetails]="false"
-            [pageSize]="pageSize"
-            [showAccountColumn]="false"
+            [pageSize]="activitiesPageSize"
+            [showAccountColumn]="hasExtendedActivityData"
             [showActions]="false"
-            [sortDisabled]="true"
+            [sortDisabled]="false"
           />
         </mat-card-content>
       </mat-card>

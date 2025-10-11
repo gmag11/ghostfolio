@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "AccessPermission" ADD VALUE 'READ_RESTRICTED_EXTENDED';

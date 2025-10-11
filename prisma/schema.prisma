@@ -290,6 +290,7 @@ model User {
 enum AccessPermission {
   READ
   READ_RESTRICTED
+  READ_RESTRICTED_EXTENDED
 }
 
 enum AssetClass {

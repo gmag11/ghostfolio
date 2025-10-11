@@ -82,6 +82,43 @@ export class GfPublicPageComponent implements OnInit {
   };
   public UNKNOWN_KEY = UNKNOWN_KEY;
 
+  // Determine if this is an extended view based on available data
+  public get isExtendedView(): boolean {
+    if (!this.publicPortfolioDetails?.holdings) return false;
+
+    // Check if any holding has extended fields that are only available in READ_RESTRICTED_EXTENDED
+    const firstHolding = Object.values(this.publicPortfolioDetails.holdings)[0];
+    return (
+      firstHolding &&
+      ('grossPerformance' in firstHolding ||
+        'quantity' in firstHolding ||
+        'investment' in firstHolding)
+    );
+  }
+
+  // Check if activities have extended data (account and comment fields)
+  public get hasExtendedActivityData(): boolean {
+    if (!this.publicPortfolioDetails?.latestActivities?.length) return false;
+
+    const firstActivity = this.publicPortfolioDetails.latestActivities[0];
+    return (
+      firstActivity &&
+      ('account' in firstActivity || 'comment' in firstActivity)
+    );
+  }
+
+  // Get the appropriate page size for holdings table
+  public get holdingsPageSize(): number {
+    // Show more holdings in extended view
+    return this.isExtendedView ? 15 : 7;
+  }
+
+  // Get the appropriate page size for activities table
+  public get activitiesPageSize(): number {
+    // Show all activities in extended view, limited in regular view
+    return this.isExtendedView ? Number.MAX_SAFE_INTEGER : 10;
+  }
+
   private accessId: string;
   private unsubscribeSubject = new Subject<void>();
 

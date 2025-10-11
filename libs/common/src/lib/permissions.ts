@@ -1,6 +1,6 @@
 import { UserWithSettings } from '@ghostfolio/common/types';
 
-import { Role } from '@prisma/client';
+import { AccessPermission, Role } from '@prisma/client';
 
 export const permissions = {
   accessAdminControl: 'accessAdminControl',
@@ -192,7 +192,13 @@ export function hasReadRestrictedAccessPermission({
     return id === impersonationId;
   });
 
-  return access?.permissions?.includes('READ_RESTRICTED') ?? true;
+  return (
+    (access?.permissions?.includes(AccessPermission.READ_RESTRICTED) ||
+      access?.permissions?.includes(
+        'READ_RESTRICTED_EXTENDED' as AccessPermission
+      )) ??
+    true
+  );
 }
 
 export function hasRole(aUser: UserWithSettings, aRole: Role) {

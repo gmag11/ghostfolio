@@ -61,6 +61,11 @@ export class PublicController {
       hasDetails = user.subscription.type === 'Premium';
     }
 
+    // Check if this is READ_RESTRICTED_EXTENDED permission
+    const isExtendedView = access.permissions.includes(
+      'READ_RESTRICTED_EXTENDED' as any
+    );
+
     const [
       { createdAt, holdings, markets },
       { performance: performance1d },
@@ -81,47 +86,54 @@ export class PublicController {
       })
     ]);
 
+    // Get activities based on permission - extended view gets all activities
     const { activities } = await this.orderService.getOrders({
       includeDrafts: false,
       sortColumn: 'date',
       sortDirection: 'desc',
-      take: 10,
+      take: isExtendedView ? undefined : 10,
       types: [ActivityType.BUY, ActivityType.SELL],
       userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
       userId: user.id,
       withExcludedAccountsAndActivities: false
     });
 
-    // Experimental
+    // Transform activities to include additional fields for extended view
+    const processedActivities = activities.map((activity) => {
+      const baseActivity = {
+        currency: activity.currency,
+        date: activity.date,
+        fee: activity.fee,
+        quantity: activity.quantity,
+        SymbolProfile: activity.SymbolProfile,
+        type: activity.type,
+        unitPrice: activity.unitPrice,
+        value: activity.value,
+        valueInBaseCurrency: activity.valueInBaseCurrency
+      };
+
+      // For extended view, include account information
+      if (isExtendedView && activity.account) {
+        return {
+          ...baseActivity,
+          account: {
+            currency: activity.account.currency,
+            name: activity.account.name,
+            platform: activity.account.platform
+          },
+          comment: activity.comment
+        };
+      }
+
+      return baseActivity;
+    });
+
+    // Experimental - use latestActivities format
     const latestActivities = this.configurationService.get(
       'ENABLE_FEATURE_SUBSCRIPTION'
     )
       ? []
-      : activities.map(
-          ({
-            currency,
-            date,
-            fee,
-            quantity,
-            SymbolProfile,
-            type,
-            unitPrice,
-            value,
-            valueInBaseCurrency
-          }) => {
-            return {
-              currency,
-              date,
-              fee,
-              quantity,
-              SymbolProfile,
-              type,
-              unitPrice,
-              value,
-              valueInBaseCurrency
-            };
-          }
-        );
+      : processedActivities;
 
     Object.values(markets ?? {}).forEach((market) => {
       delete market.valueInBaseCurrency;
@@ -164,23 +176,48 @@ export class PublicController {
     ).toNumber();
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
-      publicPortfolioResponse.holdings[symbol] = {
-        allocationInPercentage:
-          portfolioPosition.valueInBaseCurrency / totalValue,
-        assetClass: hasDetails ? portfolioPosition.assetClass : undefined,
-        countries: hasDetails ? portfolioPosition.countries : [],
-        currency: hasDetails ? portfolioPosition.currency : undefined,
-        dataSource: portfolioPosition.dataSource,
-        dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
-        markets: hasDetails ? portfolioPosition.markets : undefined,
-        name: portfolioPosition.name,
-        netPerformancePercentWithCurrencyEffect:
-          portfolioPosition.netPerformancePercentWithCurrencyEffect,
-        sectors: hasDetails ? portfolioPosition.sectors : [],
-        symbol: portfolioPosition.symbol,
-        url: portfolioPosition.url,
-        valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
-      };
+      if (isExtendedView) {
+        // For extended view, include additional available holding fields
+        publicPortfolioResponse.holdings[symbol] = {
+          allocationInPercentage:
+            portfolioPosition.valueInBaseCurrency / totalValue,
+          assetClass: portfolioPosition.assetClass,
+          countries: portfolioPosition.countries,
+          currency: portfolioPosition.currency,
+          dataSource: portfolioPosition.dataSource,
+          dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
+          markets: portfolioPosition.markets,
+          name: portfolioPosition.name,
+          netPerformancePercentWithCurrencyEffect:
+            portfolioPosition.netPerformancePercentWithCurrencyEffect,
+          sectors: portfolioPosition.sectors,
+          symbol: portfolioPosition.symbol,
+          url: portfolioPosition.url,
+          valueInBaseCurrency: portfolioPosition.valueInBaseCurrency,
+          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue,
+          // Additional fields for extended view (cast to any to bypass interface restrictions)
+          ...(portfolioPosition as any)
+        };
+      } else {
+        // Original restricted logic
+        publicPortfolioResponse.holdings[symbol] = {
+          allocationInPercentage:
+            portfolioPosition.valueInBaseCurrency / totalValue,
+          assetClass: hasDetails ? portfolioPosition.assetClass : undefined,
+          countries: hasDetails ? portfolioPosition.countries : [],
+          currency: hasDetails ? portfolioPosition.currency : undefined,
+          dataSource: portfolioPosition.dataSource,
+          dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
+          markets: hasDetails ? portfolioPosition.markets : undefined,
+          name: portfolioPosition.name,
+          netPerformancePercentWithCurrencyEffect:
+            portfolioPosition.netPerformancePercentWithCurrencyEffect,
+          sectors: hasDetails ? portfolioPosition.sectors : [],
+          symbol: portfolioPosition.symbol,
+          url: portfolioPosition.url,
+          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
+        };
+      }
     }
 
     return publicPortfolioResponse;
