@@ -286,6 +286,8 @@ export class OrderService {
           params.append('symbol', fullOrder.SymbolProfile.symbol);
         if (fullOrder.SymbolProfile?.currency)
           params.append('currency', fullOrder.SymbolProfile.currency);
+        if (fullOrder.SymbolProfile?.name)
+          params.append('assetName', fullOrder.SymbolProfile.name);
 
         // Include comment (note) if present
         if (fullOrder.comment) params.append('note', String(fullOrder.comment));
@@ -388,6 +390,8 @@ export class OrderService {
           params.append('symbol', fullOrder.SymbolProfile.symbol);
         if (fullOrder.SymbolProfile?.currency)
           params.append('currency', fullOrder.SymbolProfile.currency);
+        if (fullOrder.SymbolProfile?.name)
+          params.append('assetName', fullOrder.SymbolProfile.name);
 
         params.append('operation', 'delete');
 
@@ -932,6 +936,8 @@ export class OrderService {
           params.append('symbol', fullOrder.SymbolProfile.symbol);
         if (fullOrder.SymbolProfile?.currency)
           params.append('currency', fullOrder.SymbolProfile.currency);
+        if (fullOrder.SymbolProfile?.name)
+          params.append('assetName', fullOrder.SymbolProfile.name);
 
         // Include comment (note) if present
         if (fullOrder.comment) params.append('note', String(fullOrder.comment));
@@ -1032,6 +1038,8 @@ export class OrderService {
           params.append('symbol', fullOrder.SymbolProfile.symbol);
         if (fullOrder.SymbolProfile?.currency)
           params.append('currency', fullOrder.SymbolProfile.currency);
+        if (fullOrder.SymbolProfile?.name)
+          params.append('assetName', fullOrder.SymbolProfile.name);
 
         // Include comment (note) if present
         if (fullOrder.comment) params.append('note', String(fullOrder.comment));

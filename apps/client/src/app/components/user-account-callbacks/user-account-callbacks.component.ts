@@ -106,7 +106,7 @@ export class GfUserAccountCallbacksComponent implements OnInit, OnDestroy {
     this.changeDetectorRef.markForCheck();
 
     this.dataService
-      .putUserSetting({ activityCallbackUrl: undefined })
+      .putUserSetting({ activityCallbackUrl: null })
       .pipe(takeUntil(this.unsubscribeSubject))
       .subscribe(() => {
         this.notificationService.alert({
