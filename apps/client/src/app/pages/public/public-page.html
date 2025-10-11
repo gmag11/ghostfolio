@@ -63,6 +63,50 @@
       </mat-card>
     </div>
   </div>
+  @if (isExtendedView && publicPortfolioDetails?.summary) {
+    <div class="row">
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [isCurrency]="true"
+              [value]="publicPortfolioDetails.summary.totalInvestment"
+              >Total invested</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [isCurrency]="true"
+              [value]="publicPortfolioDetails.summary.currentValue"
+              >Current value</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [colorizeSign]="true"
+              [isCurrency]="true"
+              [value]="publicPortfolioDetails.summary.netPerformance"
+              >Net performance</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
   <div class="proportion-charts row">
     <div class="col-md-12 allocations-by-symbol">
       <mat-card appearance="outlined" class="mb-3">

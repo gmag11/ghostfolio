@@ -136,15 +136,7 @@ export class GfPublicPageComponent implements OnInit {
   public readonly activitiesPageSize = 10;
 
   public get isExtendedView(): boolean {
-    if (!this.publicPortfolioDetails?.holdings) return false;
-
-    const firstHolding = Object.values(this.publicPortfolioDetails.holdings)[0];
-    return (
-      firstHolding &&
-      ('grossPerformance' in firstHolding ||
-        'quantity' in firstHolding ||
-        'investment' in firstHolding)
-    );
+    return !!this.publicPortfolioDetails?.summary;
   }
 
   public get hasExtendedActivityData(): boolean {

@@ -163,6 +163,15 @@ export class PublicController {
       }
     };
 
+    // Add summary data for extended view
+    if (isExtendedView) {
+      publicPortfolioResponse.summary = {
+        totalInvestment: performanceMax.totalInvestment,
+        currentValue: performanceMax.currentValueInBaseCurrency,
+        netPerformance: performanceMax.netPerformance
+      };
+    }
+
     const totalValue = getSum(
       Object.values(holdings).map(({ currency, marketPrice, quantity }) => {
         return new Big(
@@ -181,8 +190,26 @@ export class PublicController {
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,
-          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue,
-          ...(portfolioPosition as any)
+          assetClass: portfolioPosition.assetClass,
+          countries: portfolioPosition.countries,
+          currency: portfolioPosition.currency,
+          dataSource: portfolioPosition.dataSource,
+          dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
+          grossPerformance: portfolioPosition.grossPerformance,
+          investment: portfolioPosition.investment,
+          markets: portfolioPosition.markets,
+          name: portfolioPosition.name,
+          netPerformance: portfolioPosition.netPerformance,
+          netPerformancePercentWithCurrencyEffect:
+            portfolioPosition.netPerformancePercentWithCurrencyEffect,
+          netPerformanceWithCurrencyEffect:
+            portfolioPosition.netPerformanceWithCurrencyEffect,
+          quantity: portfolioPosition.quantity,
+          sectors: portfolioPosition.sectors,
+          symbol: portfolioPosition.symbol,
+          url: portfolioPosition.url,
+          valueInBaseCurrency: portfolioPosition.valueInBaseCurrency,
+          valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
       } else {
         publicPortfolioResponse.holdings[symbol] = {
@@ -193,13 +220,19 @@ export class PublicController {
           currency: hasDetails ? portfolioPosition.currency : undefined,
           dataSource: portfolioPosition.dataSource,
           dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
+          grossPerformance: undefined,
+          investment: undefined,
           markets: hasDetails ? portfolioPosition.markets : undefined,
           name: portfolioPosition.name,
+          netPerformance: undefined,
           netPerformancePercentWithCurrencyEffect:
             portfolioPosition.netPerformancePercentWithCurrencyEffect,
+          netPerformanceWithCurrencyEffect: undefined,
+          quantity: undefined,
           sectors: hasDetails ? portfolioPosition.sectors : [],
           symbol: portfolioPosition.symbol,
           url: portfolioPosition.url,
+          valueInBaseCurrency: undefined,
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
       }
