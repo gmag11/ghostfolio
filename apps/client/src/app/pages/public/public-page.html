@@ -63,6 +63,50 @@
       </mat-card>
     </div>
   </div>
+  @if (isExtendedView && publicPortfolioDetails?.summary) {
+    <div class="row">
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [isCurrency]="true"
+              [value]="publicPortfolioDetails.summary.totalInvestment"
+              >Total invested</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [isCurrency]="true"
+              [value]="publicPortfolioDetails.summary.currentValue"
+              >Current value</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+      <div class="col-md-4">
+        <mat-card appearance="outlined" class="mb-3">
+          <mat-card-content>
+            <gf-value
+              i18n
+              size="large"
+              [colorizeSign]="true"
+              [isCurrency]="true"
+              [value]="publicPortfolioDetails.summary.netPerformance"
+              >Net performance</gf-value
+            >
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  }
   <div class="proportion-charts row">
     <div class="col-md-12 allocations-by-symbol">
       <mat-card appearance="outlined" class="mb-3">
@@ -80,10 +124,10 @@
           <gf-holdings-table
             [deviceType]="deviceType"
             [hasPermissionToOpenDetails]="false"
-            [hasPermissionToShowQuantities]="false"
-            [hasPermissionToShowValues]="false"
+            [hasPermissionToShowQuantities]="isExtendedView"
+            [hasPermissionToShowValues]="isExtendedView"
             [holdings]="holdings"
-            [pageSize]="7"
+            [pageSize]="holdingsPageSize"
           />
         </mat-card-content>
       </mat-card>
@@ -207,9 +251,13 @@
     <div class="col-md-12">
       <mat-card appearance="outlined">
         <mat-card-header class="overflow-hidden w-100">
-          <mat-card-title class="text-truncate" i18n
-            >Latest activities</mat-card-title
-          >
+          <mat-card-title class="text-truncate">
+            @if (isExtendedView) {
+              <ng-container i18n>Activities</ng-container>
+            } @else {
+              <ng-container i18n>Latest activities</ng-container>
+            }
+          </mat-card-title>
         </mat-card-header>
         <mat-card-content>
           <gf-activities-table
@@ -219,10 +267,13 @@
             [hasPermissionToDeleteActivity]="false"
             [hasPermissionToExportActivities]="false"
             [hasPermissionToOpenDetails]="false"
-            [pageSize]="pageSize"
-            [showAccountColumn]="false"
+            [pageIndex]="activitiesPageIndex"
+            [pageSize]="activitiesPageSize"
+            [showAccountColumn]="hasExtendedActivityData"
             [showActions]="false"
-            [sortDisabled]="true"
+            [sortDisabled]="false"
+            [totalItems]="activitiesTotalItems"
+            (pageChanged)="onActivitiesPageChanged($event)"
           />
         </mat-card-content>
       </mat-card>

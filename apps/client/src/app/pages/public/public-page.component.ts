@@ -23,6 +23,7 @@ import {
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { PageEvent } from '@angular/material/paginator';
 import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AssetClass } from '@prisma/client';
@@ -50,6 +51,8 @@ import { catchError, takeUntil } from 'rxjs/operators';
   templateUrl: './public-page.html'
 })
 export class GfPublicPageComponent implements OnInit {
+  public activitiesPageIndex = 0;
+  public activitiesTotalItems = 0;
   public continents: {
     [code: string]: { name: string; value: number };
   };
@@ -124,14 +127,29 @@ export class GfPublicPageComponent implements OnInit {
         this.publicPortfolioDetails = portfolioPublicDetails;
 
         this.initializeAnalysisData();
-
-        this.latestActivitiesDataSource = new MatTableDataSource(
-          this.publicPortfolioDetails.latestActivities
-        );
+        this.initializeActivitiesData();
 
         this.changeDetectorRef.markForCheck();
       });
   }
+
+  public readonly activitiesPageSize = 10;
+
+  public get isExtendedView(): boolean {
+    return !!this.publicPortfolioDetails?.summary;
+  }
+
+  public get hasExtendedActivityData(): boolean {
+    if (!this.publicPortfolioDetails?.latestActivities?.length) return false;
+
+    const firstActivity = this.publicPortfolioDetails.latestActivities[0];
+    return (
+      firstActivity &&
+      ('account' in firstActivity || 'comment' in firstActivity)
+    );
+  }
+
+  public readonly holdingsPageSize = 10;
 
   public initializeAnalysisData() {
     this.continents = {
@@ -175,8 +193,6 @@ export class GfPublicPageComponent implements OnInit {
       };
 
       if (position.assetClass !== AssetClass.LIQUIDITY) {
-        // Prepare analysis data by continents, countries, holdings and sectors except for liquidity
-
         if (position.countries.length > 0) {
           for (const country of position.countries) {
             const { code, continent, name, weight } = country;
@@ -245,6 +261,33 @@ export class GfPublicPageComponent implements OnInit {
           : position.valueInPercentage
       };
     }
+  }
+
+  public initializeActivitiesData() {
+    const allActivities = this.publicPortfolioDetails.latestActivities || [];
+    this.activitiesTotalItems = allActivities.length;
+
+    this.updateActivitiesDataSource();
+  }
+
+  public updateActivitiesDataSource() {
+    const allActivities = this.publicPortfolioDetails.latestActivities || [];
+
+    const startIndex = this.activitiesPageIndex * this.activitiesPageSize;
+    const endIndex = startIndex + this.activitiesPageSize;
+    const paginatedActivities = allActivities.slice(startIndex, endIndex);
+
+    this.latestActivitiesDataSource = new MatTableDataSource(
+      paginatedActivities
+    );
+
+    this.latestActivitiesDataSource.paginator = null;
+  }
+
+  public onActivitiesPageChanged(event: PageEvent) {
+    this.activitiesPageIndex = event.pageIndex;
+    this.updateActivitiesDataSource();
+    this.changeDetectorRef.markForCheck();
   }
 
   public ngOnDestroy() {

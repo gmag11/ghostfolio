@@ -20,9 +20,14 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
       | 'currency'
       | 'dataSource'
       | 'dateOfFirstActivity'
+      | 'grossPerformance'
+      | 'investment'
       | 'markets'
       | 'name'
+      | 'netPerformance'
       | 'netPerformancePercentWithCurrencyEffect'
+      | 'netPerformanceWithCurrencyEffect'
+      | 'quantity'
       | 'sectors'
       | 'symbol'
       | 'url'
@@ -43,6 +48,11 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
       PortfolioDetails['markets'][key],
       'id' | 'valueInPercentage'
     >;
+  };
+  summary?: {
+    totalInvestment: number;
+    currentValue: number;
+    netPerformance: number;
   };
 }
 
