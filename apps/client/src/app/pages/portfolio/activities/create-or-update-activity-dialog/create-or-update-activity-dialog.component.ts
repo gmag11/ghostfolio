@@ -233,7 +233,7 @@ export class GfCreateOrUpdateActivityDialogComponent implements OnDestroy {
       ],
       type: [undefined, Validators.required], // Set after value changes subscription
       unitPrice: [this.data.activity?.unitPrice, Validators.required],
-      updateAccountBalance: [false]
+      updateAccountBalance: [this.mode === 'create']
     });
 
     this.activityForm.valueChanges
@@ -278,6 +278,12 @@ export class GfCreateOrUpdateActivityDialogComponent implements OnDestroy {
         if (['FEE', 'INTEREST'].includes(type)) {
           if (this.activityForm.get('accountId').value) {
             this.activityForm.get('updateAccountBalance').enable();
+            if (
+              this.mode === 'create' &&
+              !this.activityForm.get('updateAccountBalance').value
+            ) {
+              this.activityForm.get('updateAccountBalance').setValue(true);
+            }
           } else {
             this.activityForm.get('updateAccountBalance').disable();
             this.activityForm.get('updateAccountBalance').setValue(false);
@@ -309,6 +315,12 @@ export class GfCreateOrUpdateActivityDialogComponent implements OnDestroy {
     this.activityForm.get('date').valueChanges.subscribe(() => {
       if (isToday(this.activityForm.get('date').value)) {
         this.activityForm.get('updateAccountBalance').enable();
+        if (
+          this.mode === 'create' &&
+          !this.activityForm.get('updateAccountBalance').value
+        ) {
+          this.activityForm.get('updateAccountBalance').setValue(true);
+        }
       } else {
         this.activityForm.get('updateAccountBalance').disable();
         this.activityForm.get('updateAccountBalance').setValue(false);
@@ -445,6 +457,12 @@ export class GfCreateOrUpdateActivityDialogComponent implements OnDestroy {
             this.activityForm.get('accountId').value
           ) {
             this.activityForm.get('updateAccountBalance').enable();
+            if (
+              this.mode === 'create' &&
+              !this.activityForm.get('updateAccountBalance').value
+            ) {
+              this.activityForm.get('updateAccountBalance').setValue(true);
+            }
           } else {
             this.activityForm.get('updateAccountBalance').disable();
             this.activityForm.get('updateAccountBalance').setValue(false);
@@ -463,6 +481,12 @@ export class GfCreateOrUpdateActivityDialogComponent implements OnDestroy {
             .setValidators(Validators.required);
           this.activityForm.get('searchSymbol').updateValueAndValidity();
           this.activityForm.get('updateAccountBalance').enable();
+          if (
+            this.mode === 'create' &&
+            !this.activityForm.get('updateAccountBalance').value
+          ) {
+            this.activityForm.get('updateAccountBalance').setValue(true);
+          }
         }
 
         this.changeDetectorRef.markForCheck();
