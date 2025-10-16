@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Extended the glossary of the resources page by _Stealth Wealth_
 - Added a _Storybook_ story for the holdings table component
 - Add Average Buy Price in holdings table
 
@@ -33,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Respected the include indices flag in the search functionality of the _Financial Modeling Prep_ service
+- Fixed an issue where the scroll position was not restored when changing pages
+- Fixed the dark mode in the _As seen in_ section on the landing page
 
 ## 2.208.0 - 2025-10-11
 
