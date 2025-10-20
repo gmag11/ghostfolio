@@ -65,11 +65,6 @@ export class GfPortfolioFilterFormComponent
 
   public filterForm: FormGroup;
 
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private onChange: (value: PortfolioFilterFormValue) => void = () => {};
-
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  private onTouched: () => void = () => {};
   private unsubscribeSubject = new Subject<void>();
 
   public constructor(
@@ -122,6 +117,7 @@ export class GfPortfolioFilterFormComponent
     }
 
     const tagControl = this.filterForm.get('tag');
+
     if (this.tags.length === 0) {
       tagControl?.disable({ emitEvent: false });
     } else if (!this.disabled) {
@@ -171,4 +167,13 @@ export class GfPortfolioFilterFormComponent
     this.unsubscribeSubject.next();
     this.unsubscribeSubject.complete();
   }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  private onChange = (_value: PortfolioFilterFormValue): void => {
+    // ControlValueAccessor onChange callback
+  };
+
+  private onTouched = (): void => {
+    // ControlValueAccessor onTouched callback
+  };
 }
