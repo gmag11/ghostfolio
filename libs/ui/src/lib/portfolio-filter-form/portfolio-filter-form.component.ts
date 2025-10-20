@@ -1,4 +1,3 @@
-import { GfSymbolPipe } from '@ghostfolio/client/pipes/symbol/symbol.pipe';
 import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
 import { Filter, PortfolioPosition } from '@ghostfolio/common/interfaces';
 import { AccountWithPlatform } from '@ghostfolio/common/types';
@@ -28,6 +27,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { Subject, takeUntil } from 'rxjs';
 
 import { GfEntityLogoComponent } from '../entity-logo/entity-logo.component';
+import { GfSymbolPipe } from '../pipes/symbol.pipe';
 import { PortfolioFilterFormValue } from './interfaces';
 
 @Component({
@@ -87,7 +87,7 @@ export class GfPortfolioFilterFormComponent
   }
 
   public hasFilters() {
-    const formValue = this.filterForm.value;
+    const formValue = this.filterForm.value as PortfolioFilterFormValue;
 
     return Object.values(formValue).some((value) => {
       return !!value;
