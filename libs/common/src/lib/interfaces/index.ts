@@ -15,7 +15,6 @@ import type { Benchmark } from './benchmark.interface';
 import type { Coupon } from './coupon.interface';
 import type { DataProviderInfo } from './data-provider-info.interface';
 import type { EnhancedSymbolProfile } from './enhanced-symbol-profile.interface';
-import type { Export } from './export.interface';
 import type { FilterGroup } from './filter-group.interface';
 import type { Filter } from './filter.interface';
 import type { FireWealth } from './fire-wealth.interface';
@@ -38,6 +37,7 @@ import type { Product } from './product';
 import type { AccessTokenResponse } from './responses/access-token-response.interface';
 import type { AccountBalancesResponse } from './responses/account-balances-response.interface';
 import type { AccountsResponse } from './responses/accounts-response.interface';
+import type { ActivityResponse } from './responses/activity-response.interface';
 import type { AiPromptResponse } from './responses/ai-prompt-response.interface';
 import type { ApiKeyResponse } from './responses/api-key-response.interface';
 import type { AssetResponse } from './responses/asset-response.interface';
@@ -49,6 +49,7 @@ import type { DataProviderGhostfolioStatusResponse } from './responses/data-prov
 import type { DataProviderHealthResponse } from './responses/data-provider-health-response.interface';
 import type { DividendsResponse } from './responses/dividends-response.interface';
 import type { ResponseError } from './responses/errors.interface';
+import type { ExportResponse } from './responses/export-response.interface';
 import type { HistoricalResponse } from './responses/historical-response.interface';
 import type { ImportResponse } from './responses/import-response.interface';
 import type { InfoResponse } from './responses/info-response.interface';
@@ -82,6 +83,7 @@ export {
   AccountBalance,
   AccountBalancesResponse,
   AccountsResponse,
+  ActivityResponse,
   AdminData,
   AdminJobs,
   AdminMarketData,
@@ -105,7 +107,7 @@ export {
   DataProviderInfo,
   DividendsResponse,
   EnhancedSymbolProfile,
-  Export,
+  ExportResponse,
   Filter,
   FilterGroup,
   FireWealth,
