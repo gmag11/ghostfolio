@@ -21,7 +21,7 @@ module.exports = [
         'warn',
         {
           enforceBuildableLibDependency: true,
-          allow: [],
+          allow: ['^@ghostfolio/api'],
           depConstraints: [
             {
               sourceTag: '*',
