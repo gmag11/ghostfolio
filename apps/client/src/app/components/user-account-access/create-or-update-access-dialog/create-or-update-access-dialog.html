@@ -64,6 +64,80 @@
         </mat-form-field>
       </div>
     }
+
+    @if (showFilterPanel) {
+      <div class="mt-4">
+        <h2 class="mb-3" i18n style="font-size: 1.125rem; font-weight: 500">
+          Filter Settings (Optional)
+        </h2>
+        <p class="text-muted mb-3" i18n style="font-size: 0.875rem">
+          Configure which accounts, holdings, tags, and asset classes will be
+          visible in this public access. Leave empty to show all data.
+        </p>
+
+        <div class="mb-3">
+          <mat-form-field appearance="outline" class="w-100 without-hint">
+            <mat-label i18n>Account</mat-label>
+            <mat-select formControlName="filterAccount">
+              <mat-option [value]="null" />
+              @for (account of accounts; track account.id) {
+                <mat-option [value]="account.id">
+                  {{ account.name }}
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="mb-3">
+          <mat-form-field appearance="outline" class="w-100 without-hint">
+            <mat-label i18n>Holding</mat-label>
+            <mat-select formControlName="filterHolding">
+              <mat-option [value]="null" />
+              @for (holding of holdings; track holding.symbol) {
+                <mat-option [value]="holding.symbol">
+                  <div class="line-height-1 text-truncate">
+                    <span
+                      ><b>{{ holding.name }}</b></span
+                    >
+                    <br />
+                    <small class="text-muted"
+                      >{{ holding.symbol }} · {{ holding.currency }}</small
+                    >
+                  </div>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="mb-3">
+          <mat-form-field appearance="outline" class="w-100 without-hint">
+            <mat-label i18n>Tag</mat-label>
+            <mat-select formControlName="filterTag">
+              <mat-option [value]="null" />
+              @for (tag of tags; track tag.id) {
+                <mat-option [value]="tag.id">{{ tag.label }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="mb-3">
+          <mat-form-field appearance="outline" class="w-100 without-hint">
+            <mat-label i18n>Asset Class</mat-label>
+            <mat-select formControlName="filterAssetClass">
+              <mat-option [value]="null" />
+              @for (assetClass of assetClasses; track assetClass.id) {
+                <mat-option [value]="assetClass.id">{{
+                  assetClass.label
+                }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        </div>
+      </div>
+    }
   </div>
   <div class="justify-content-end" mat-dialog-actions>
     <button mat-button type="button" (click)="onCancel()">
