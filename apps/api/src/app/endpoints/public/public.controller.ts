@@ -167,10 +167,17 @@ export class PublicController {
       };
     }
 
+    // Calculate total value based on what will be displayed
     const totalValue = getSum(
-      Object.values(holdings).map(({ valueInBaseCurrency }) => {
-        return new Big(valueInBaseCurrency);
-      })
+      Object.values(holdings)
+        .filter(({ assetSubClass }) => {
+          // In extended view, include everything (including CASH)
+          // In normal view, exclude CASH
+          return isExtendedView || assetSubClass !== AssetSubClass.CASH;
+        })
+        .map(({ valueInBaseCurrency }) => {
+          return new Big(valueInBaseCurrency);
+        })
     ).toNumber();
 
     for (const [symbol, portfolioPosition] of Object.entries(holdings)) {
