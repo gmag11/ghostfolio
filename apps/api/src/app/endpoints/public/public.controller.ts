@@ -288,8 +288,11 @@ export class PublicController {
     }
 
     // Calculate total value based on what will be displayed
+    // Use original holdings for extended view, filtered for normal view
+    const holdingsToUse = isExtendedView ? holdings : filteredHoldings;
+
     const totalValue = getSum(
-      Object.values(filteredHoldings)
+      Object.values(holdingsToUse)
         .filter(({ assetSubClass }) => {
           // In extended view, include everything (including CASH)
           // In normal view, exclude CASH
@@ -300,9 +303,7 @@ export class PublicController {
         })
     ).toNumber();
 
-    for (const [symbol, portfolioPosition] of Object.entries(
-      filteredHoldings
-    )) {
+    for (const [symbol, portfolioPosition] of Object.entries(holdingsToUse)) {
       if (isExtendedView) {
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
