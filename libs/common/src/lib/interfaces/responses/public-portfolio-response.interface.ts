@@ -15,6 +15,7 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
       PortfolioPosition,
       | 'allocationInPercentage'
       | 'assetClass'
+      | 'assetSubClass'
       | 'countries'
       | 'currency'
       | 'dataSource'

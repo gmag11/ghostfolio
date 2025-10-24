@@ -4,22 +4,18 @@ import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.servic
 import { UserService } from '@ghostfolio/api/app/user/user.service';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response/transform-data-source-in-response.interceptor';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
-import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
 import { DEFAULT_CURRENCY } from '@ghostfolio/common/config';
 import { getSum } from '@ghostfolio/common/helper';
 import { PublicPortfolioResponse } from '@ghostfolio/common/interfaces';
-import type { RequestWithUser } from '@ghostfolio/common/types';
 
 import {
   Controller,
   Get,
   HttpException,
-  Inject,
   Param,
   UseInterceptors
 } from '@nestjs/common';
-import { REQUEST } from '@nestjs/core';
-import { Type as ActivityType } from '@prisma/client';
+import { AssetSubClass, Type as ActivityType } from '@prisma/client';
 import { Big } from 'big.js';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
@@ -28,10 +24,8 @@ export class PublicController {
   public constructor(
     private readonly accessService: AccessService,
     private readonly configurationService: ConfigurationService,
-    private readonly exchangeRateDataService: ExchangeRateDataService,
     private readonly orderService: OrderService,
     private readonly portfolioService: PortfolioService,
-    @Inject(REQUEST) private readonly request: RequestWithUser,
     private readonly userService: UserService
   ) {}
 
@@ -70,6 +64,7 @@ export class PublicController {
       { performance: performanceYtd }
     ] = await Promise.all([
       this.portfolioService.getDetails({
+        filters: [],
         impersonationId: access.userId,
         userId: user.id,
         withMarkets: true
@@ -173,15 +168,8 @@ export class PublicController {
     }
 
     const totalValue = getSum(
-      Object.values(holdings).map(({ currency, marketPrice, quantity }) => {
-        return new Big(
-          this.exchangeRateDataService.toCurrency(
-            quantity * marketPrice,
-            currency,
-            this.request.user?.settings?.settings.baseCurrency ??
-              DEFAULT_CURRENCY
-          )
-        );
+      Object.values(holdings).map(({ valueInBaseCurrency }) => {
+        return new Big(valueInBaseCurrency);
       })
     ).toNumber();
 
@@ -191,6 +179,7 @@ export class PublicController {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,
           assetClass: portfolioPosition.assetClass,
+          assetSubClass: portfolioPosition.assetSubClass,
           countries: portfolioPosition.countries,
           currency: portfolioPosition.currency,
           dataSource: portfolioPosition.dataSource,
@@ -212,10 +201,16 @@ export class PublicController {
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
       } else {
+        // Skip CASH for non-extended view
+        if (portfolioPosition.assetSubClass === AssetSubClass.CASH) {
+          continue;
+        }
+
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,
           assetClass: hasDetails ? portfolioPosition.assetClass : undefined,
+          assetSubClass: undefined,
           countries: hasDetails ? portfolioPosition.countries : [],
           currency: hasDetails ? portfolioPosition.currency : undefined,
           dataSource: portfolioPosition.dataSource,
