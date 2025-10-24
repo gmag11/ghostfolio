@@ -11,6 +11,7 @@ import {
   Filter,
   PublicPortfolioResponse
 } from '@ghostfolio/common/interfaces';
+import { SubscriptionType } from '@ghostfolio/common/types/subscription-type.type';
 
 import {
   Controller,
@@ -19,7 +20,11 @@ import {
   Param,
   UseInterceptors
 } from '@nestjs/common';
-import { AssetSubClass, Type as ActivityType } from '@prisma/client';
+import {
+  AccessPermission,
+  AssetSubClass,
+  Type as ActivityType
+} from '@prisma/client';
 import { Big } from 'big.js';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
@@ -54,12 +59,12 @@ export class PublicController {
     });
 
     if (this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION')) {
-      hasDetails = user.subscription.type === 'Premium';
+      hasDetails = user.subscription.type === SubscriptionType.Premium;
     }
 
     // Check if this is an extended view access
     const isExtendedView = access.permissions.includes(
-      'READ_RESTRICTED_EXTENDED' as any
+      AccessPermission.READ_RESTRICTED_EXTENDED
     );
 
     // Get filter configuration from access settings
