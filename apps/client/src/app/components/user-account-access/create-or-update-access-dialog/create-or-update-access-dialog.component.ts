@@ -69,9 +69,9 @@ export class GfCreateOrUpdateAccessDialogComponent
   private unsubscribeSubject = new Subject<void>();
 
   public constructor(
+    public dialogRef: MatDialogRef<GfCreateOrUpdateAccessDialogComponent>,
     private changeDetectorRef: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) private data: CreateOrUpdateAccessDialogParams,
-    public dialogRef: MatDialogRef<GfCreateOrUpdateAccessDialogComponent>,
     private dataService: DataService,
     private formBuilder: FormBuilder,
     private notificationService: NotificationService
@@ -316,7 +316,7 @@ export class GfCreateOrUpdateAccessDialogComponent
         .postAccess(access)
         .pipe(
           catchError((error: { status?: number }) => {
-            if (error?.status === StatusCodes.BAD_REQUEST) {
+            if (error.status === (StatusCodes.BAD_REQUEST as number)) {
               this.notificationService.alert({
                 title: $localize`Oops! Could not grant access.`
               });
@@ -359,7 +359,7 @@ export class GfCreateOrUpdateAccessDialogComponent
         .putAccess(access)
         .pipe(
           catchError((error: { status?: number }) => {
-            if (error?.status === StatusCodes.BAD_REQUEST) {
+            if (error.status === (StatusCodes.BAD_REQUEST as number)) {
               this.notificationService.alert({
                 title: $localize`Oops! Could not update access.`
               });
