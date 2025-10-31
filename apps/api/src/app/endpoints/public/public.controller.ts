@@ -76,7 +76,7 @@ export class PublicController {
 
     if (accessFilter) {
       // Add account filters
-      if (accessFilter.accountIds && accessFilter.accountIds.length > 0) {
+      if (accessFilter.accountIds?.length > 0) {
         portfolioFilters.push(
           ...accessFilter.accountIds.map((accountId) => ({
             id: accountId,
@@ -86,7 +86,7 @@ export class PublicController {
       }
 
       // Add asset class filters
-      if (accessFilter.assetClasses && accessFilter.assetClasses.length > 0) {
+      if (accessFilter.assetClasses?.length > 0) {
         portfolioFilters.push(
           ...accessFilter.assetClasses.map((assetClass) => ({
             id: assetClass,
@@ -96,7 +96,7 @@ export class PublicController {
       }
 
       // Add tag filters
-      if (accessFilter.tagIds && accessFilter.tagIds.length > 0) {
+      if (accessFilter.tagIds?.length > 0) {
         portfolioFilters.push(
           ...accessFilter.tagIds.map((tagId) => ({
             id: tagId,
@@ -107,19 +107,19 @@ export class PublicController {
 
       // Add holding filters (symbol + dataSource)
       // Each holding needs both DATA_SOURCE and SYMBOL filters
-      if (accessFilter.holdings && accessFilter.holdings.length > 0) {
-        accessFilter.holdings.forEach((holding) => {
+      if (accessFilter.holdings?.length > 0) {
+        for (const { dataSource, symbol } of accessFilter.holdings) {
           portfolioFilters.push(
             {
-              id: holding.dataSource,
+              id: dataSource,
               type: 'DATA_SOURCE' as const
             },
             {
-              id: holding.symbol,
+              id: symbol,
               type: 'SYMBOL' as const
             }
           );
-        });
+        }
       }
     }
 
@@ -145,7 +145,6 @@ export class PublicController {
       })
     ]);
 
-    // Filter out only the base currency cash holdings
     const baseCurrency =
       user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY;
     const filteredHoldings = Object.fromEntries(
@@ -188,32 +187,14 @@ export class PublicController {
       includeDrafts: false,
       sortColumn: 'date',
       sortDirection: 'desc',
-      take: isExtendedView ? undefined : hasMultipleHoldingFilters ? 1000 : 10, // Get more if we need to filter manually, unlimited for extended view
+      take: isExtendedView ? undefined : 10, // Get more if we need to filter manually, unlimited for extended view
       types: [ActivityType.BUY, ActivityType.SELL],
       userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
       userId: access.userId,
       withExcludedAccountsAndActivities: false
     });
 
-    // If multiple holdings, filter activities manually
-    let filteredActivities = activities;
-    if (hasMultipleHoldingFilters && accessFilter.holdings) {
-      filteredActivities = activities.filter((activity) => {
-        return accessFilter.holdings.some(
-          (holding) =>
-            activity.SymbolProfile.dataSource === holding.dataSource &&
-            activity.SymbolProfile.symbol === holding.symbol
-        );
-      });
-    }
-
-    // Take only the latest 10 activities after filtering (unless extended view)
-    const latestActivitiesData = isExtendedView
-      ? filteredActivities
-      : filteredActivities.slice(0, 10);
-
-    // Process activities based on view type
-    const processedActivities = latestActivitiesData.map((activity) => {
+    const processedActivities = activities.map((activity) => {
       if (isExtendedView) {
         return {
           account: activity.account
@@ -261,12 +242,7 @@ export class PublicController {
     });
 
     const publicPortfolioResponse: PublicPortfolioResponse = {
-      alias: access.alias,
       createdAt,
-      hasDetails,
-      latestActivities,
-      holdings: {},
-      markets,
       performance: {
         '1d': {
           relativeChange:
@@ -280,7 +256,12 @@ export class PublicController {
           relativeChange:
             performanceYtd.netPerformancePercentageWithCurrencyEffect
         }
-      }
+      },
+      alias: access.alias,
+      hasDetails,
+      holdings: {},
+      latestActivities,
+      markets
     };
 
     // Add summary data for extended view

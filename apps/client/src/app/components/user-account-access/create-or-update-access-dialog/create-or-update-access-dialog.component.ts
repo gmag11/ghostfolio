@@ -1,7 +1,15 @@
 import { CreateAccessDto } from '@ghostfolio/api/app/access/create-access.dto';
 import { UpdateAccessDto } from '@ghostfolio/api/app/access/update-access.dto';
-import { Filter, PortfolioPosition } from '@ghostfolio/common/interfaces';
+import {
+  AssetProfileIdentifier,
+  Filter,
+  PortfolioPosition
+} from '@ghostfolio/common/interfaces';
 import { AccountWithPlatform } from '@ghostfolio/common/types';
+import {
+  GfPortfolioFilterFormComponent,
+  PortfolioFilterFormValue
+} from '@ghostfolio/ui/portfolio-filter-form';
 
 import {
   ChangeDetectionStrategy,
@@ -42,6 +50,7 @@ import { CreateOrUpdateAccessDialogParams } from './interfaces/interfaces';
   host: { class: 'h-100' },
   imports: [
     FormsModule,
+    GfPortfolioFilterFormComponent,
     MatButtonModule,
     MatDialogModule,
     MatFormFieldModule,
@@ -60,7 +69,6 @@ export class GfCreateOrUpdateAccessDialogComponent
   public mode: 'create' | 'update';
   public showFilterPanel = false;
 
-  // Datos para el filtro
   public accounts: AccountWithPlatform[] = [];
   public assetClasses: Filter[] = [];
   public holdings: PortfolioPosition[] = [];
@@ -69,12 +77,12 @@ export class GfCreateOrUpdateAccessDialogComponent
   private unsubscribeSubject = new Subject<void>();
 
   public constructor(
-    public dialogRef: MatDialogRef<GfCreateOrUpdateAccessDialogComponent>,
     private changeDetectorRef: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) private data: CreateOrUpdateAccessDialogParams,
     private dataService: DataService,
     private formBuilder: FormBuilder,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    public dialogRef: MatDialogRef<GfCreateOrUpdateAccessDialogComponent>
   ) {
     this.mode = this.data.access?.id ? 'update' : 'create';
   }
@@ -84,10 +92,7 @@ export class GfCreateOrUpdateAccessDialogComponent
 
     this.accessForm = this.formBuilder.group({
       alias: [this.data.access.alias],
-      filterAccount: [null],
-      filterAssetClass: [null],
-      filterHolding: [null],
-      filterTag: [null],
+      filters: [null],
       granteeUserId: [
         this.data.access.grantee,
         isPublic
@@ -113,11 +118,7 @@ export class GfCreateOrUpdateAccessDialogComponent
           (control: AbstractControl) => Validators.required(control)
         ]);
         this.showFilterPanel = false;
-        // Limpiar los filtros
-        this.accessForm.get('filterAccount')?.setValue(null);
-        this.accessForm.get('filterAssetClass')?.setValue(null);
-        this.accessForm.get('filterHolding')?.setValue(null);
-        this.accessForm.get('filterTag')?.setValue(null);
+        this.accessForm.get('filters')?.setValue(null);
       } else {
         granteeUserIdControl.clearValidators();
         granteeUserIdControl.setValue(null);
@@ -131,7 +132,6 @@ export class GfCreateOrUpdateAccessDialogComponent
       this.changeDetectorRef.markForCheck();
     });
 
-    // Si ya es público al iniciar, mostrar el panel y cargar datos
     if (isPublic) {
       this.showFilterPanel = true;
       this.loadFilterData();
@@ -159,56 +159,49 @@ export class GfCreateOrUpdateAccessDialogComponent
     | {
         accountIds?: string[];
         assetClasses?: string[];
-        holdings?: { dataSource: string; symbol: string }[];
+        holdings?: AssetProfileIdentifier[];
         tagIds?: string[];
       }
     | undefined {
-    const filterAccount = this.accessForm.get('filterAccount')?.value as
-      | string
-      | null;
-    const filterAssetClass = this.accessForm.get('filterAssetClass')?.value as
-      | string
-      | null;
-    const filterHolding = this.accessForm.get('filterHolding')?.value as
-      | string
-      | null;
-    const filterTag = this.accessForm.get('filterTag')?.value as string | null;
+    const filterValue = this.accessForm.get('filters')
+      ?.value as PortfolioFilterFormValue | null;
 
-    // Solo retornar filtro si hay al menos un campo con valor
-    if (!filterAccount && !filterAssetClass && !filterHolding && !filterTag) {
+    if (
+      !filterValue ||
+      (!filterValue.account &&
+        !filterValue.assetClass &&
+        !filterValue.holding &&
+        !filterValue.tag)
+    ) {
       return undefined;
     }
 
     const filter: {
       accountIds?: string[];
       assetClasses?: string[];
-      holdings?: { dataSource: string; symbol: string }[];
+      holdings?: AssetProfileIdentifier[];
       tagIds?: string[];
     } = {};
 
-    if (filterAccount) {
-      filter.accountIds = [filterAccount];
+    if (filterValue.account) {
+      filter.accountIds = [filterValue.account];
     }
 
-    if (filterAssetClass) {
-      filter.assetClasses = [filterAssetClass];
+    if (filterValue.assetClass) {
+      filter.assetClasses = [filterValue.assetClass];
     }
 
-    if (filterHolding) {
-      // Buscar el holding seleccionado para obtener dataSource y symbol
-      const holding = this.holdings.find((h) => h.symbol === filterHolding);
-      if (holding) {
-        filter.holdings = [
-          {
-            dataSource: holding.dataSource,
-            symbol: holding.symbol
-          }
-        ];
-      }
+    if (filterValue.holding) {
+      filter.holdings = [
+        {
+          dataSource: filterValue.holding.dataSource,
+          symbol: filterValue.holding.symbol
+        }
+      ];
     }
 
-    if (filterTag) {
-      filter.tagIds = [filterTag];
+    if (filterValue.tag) {
+      filter.tagIds = [filterValue.tag];
     }
 
     return filter;
@@ -217,24 +210,14 @@ export class GfCreateOrUpdateAccessDialogComponent
   private loadFilterData() {
     const existingFilter = this.data.access.settings?.filter;
 
-    // Cargar cuentas
     this.dataService
       .fetchAccounts()
       .pipe(takeUntil(this.unsubscribeSubject))
       .subscribe((response) => {
         this.accounts = response.accounts;
-
-        // Si existe un filtro de cuenta, establecerlo
-        if (existingFilter?.accountIds?.[0]) {
-          this.accessForm
-            .get('filterAccount')
-            ?.setValue(existingFilter.accountIds[0]);
-        }
-
-        this.changeDetectorRef.markForCheck();
+        this.updateFiltersFormControl(existingFilter);
       });
 
-    // Cargar holdings y asset classes
     this.dataService
       .fetchPortfolioDetails({})
       .pipe(takeUntil(this.unsubscribeSubject))
@@ -242,7 +225,6 @@ export class GfCreateOrUpdateAccessDialogComponent
         if (response.holdings) {
           this.holdings = Object.values(response.holdings);
 
-          // Extraer asset classes únicas
           const assetClassesSet = new Set<string>();
           Object.values(response.holdings).forEach((holding) => {
             if (holding.assetClass) {
@@ -255,24 +237,11 @@ export class GfCreateOrUpdateAccessDialogComponent
             type: 'ASSET_CLASS' as const
           }));
 
-          // Si existe un filtro de asset class, establecerlo
-          if (existingFilter?.assetClasses?.[0]) {
-            this.accessForm
-              .get('filterAssetClass')
-              ?.setValue(existingFilter.assetClasses[0]);
-          }
-
-          // Si existe un filtro de holding, establecerlo
-          if (existingFilter?.holdings?.[0]?.symbol) {
-            this.accessForm
-              .get('filterHolding')
-              ?.setValue(existingFilter.holdings[0].symbol);
-          }
+          this.updateFiltersFormControl(existingFilter);
         }
         this.changeDetectorRef.markForCheck();
       });
 
-    // Cargar tags
     this.dataService
       .fetchTags()
       .pipe(takeUntil(this.unsubscribeSubject))
@@ -283,17 +252,58 @@ export class GfCreateOrUpdateAccessDialogComponent
           type: 'TAG' as const
         }));
 
-        // Si existe un filtro de tag, establecerlo
-        if (existingFilter?.tagIds?.[0]) {
-          this.accessForm.get('filterTag')?.setValue(existingFilter.tagIds[0]);
-        }
-
+        this.updateFiltersFormControl(existingFilter);
         this.changeDetectorRef.markForCheck();
       });
   }
 
+  private updateFiltersFormControl(
+    existingFilter:
+      | {
+          accountIds?: string[];
+          assetClasses?: string[];
+          holdings?: AssetProfileIdentifier[];
+          tagIds?: string[];
+        }
+      | undefined
+  ) {
+    if (!existingFilter) {
+      return;
+    }
+
+    const filterValue: Partial<PortfolioFilterFormValue> = {};
+
+    if (existingFilter.accountIds?.[0] && this.accounts.length > 0) {
+      filterValue.account = existingFilter.accountIds[0];
+    }
+
+    if (existingFilter.assetClasses?.[0] && this.assetClasses.length > 0) {
+      filterValue.assetClass = existingFilter.assetClasses[0];
+    }
+
+    if (existingFilter.holdings?.[0] && this.holdings.length > 0) {
+      const holdingData = existingFilter.holdings[0];
+      const holding = this.holdings.find(
+        (h) =>
+          h.dataSource === holdingData.dataSource &&
+          h.symbol === holdingData.symbol
+      );
+      if (holding) {
+        filterValue.holding = holding;
+      }
+    }
+
+    if (existingFilter.tagIds?.[0] && this.tags.length > 0) {
+      filterValue.tag = existingFilter.tagIds[0];
+    }
+
+    if (Object.keys(filterValue).length > 0) {
+      this.accessForm.get('filters')?.setValue(filterValue);
+      this.changeDetectorRef.markForCheck();
+    }
+  }
+
   private async createAccess() {
-    // Construir el objeto filter si estamos en modo PUBLIC
     const filter = this.showFilterPanel ? this.buildFilterObject() : undefined;
 
     const access: CreateAccessDto = {
@@ -335,7 +345,6 @@ export class GfCreateOrUpdateAccessDialogComponent
   }
 
   private async updateAccess() {
-    // Construir el objeto filter si estamos en modo PUBLIC
     const filter = this.showFilterPanel ? this.buildFilterObject() : undefined;
 
     const access: UpdateAccessDto = {
