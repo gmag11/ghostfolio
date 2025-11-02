@@ -50,6 +50,7 @@ export class GfHoldingsTableComponent implements OnChanges, OnDestroy {
   @Input() baseCurrency: string;
   @Input() deviceType: string;
   @Input() hasPermissionToOpenDetails = true;
+  @Input() hasPermissionToShowMarketPrice = true;
   @Input() hasPermissionToShowQuantities = true;
   @Input() hasPermissionToShowValues = true;
   @Input() holdings: PortfolioPosition[];
@@ -79,6 +80,10 @@ export class GfHoldingsTableComponent implements OnChanges, OnDestroy {
 
     if (!this.isClosedHoldings) {
       this.displayedColumns.push('averagePrice');
+    }
+
+    if (this.hasPermissionToShowMarketPrice) {
+      this.displayedColumns.push('marketPrice');
     }
 
     if (this.hasPermissionToShowValues && !this.isClosedHoldings) {

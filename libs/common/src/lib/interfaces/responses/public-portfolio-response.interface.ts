@@ -23,6 +23,7 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
       | 'dateOfFirstActivity'
       | 'grossPerformance'
       | 'investment'
+      | 'marketPrice'
       | 'markets'
       | 'name'
       | 'netPerformance'
