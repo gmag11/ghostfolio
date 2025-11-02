@@ -19,6 +19,7 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
       | 'currency'
       | 'dataSource'
       | 'dateOfFirstActivity'
+      | 'marketPrice'
       | 'markets'
       | 'name'
       | 'netPerformancePercentWithCurrencyEffect'

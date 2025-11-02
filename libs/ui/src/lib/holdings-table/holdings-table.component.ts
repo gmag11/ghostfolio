@@ -77,6 +77,10 @@ export class GfHoldingsTableComponent implements OnChanges, OnDestroy {
     }
 
     if (this.hasPermissionToShowValues) {
+      this.displayedColumns.push('marketPrice');
+    }
+
+    if (this.hasPermissionToShowValues) {
       this.displayedColumns.push('valueInBaseCurrency');
     }
 

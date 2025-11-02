@@ -172,6 +172,7 @@ export class PublicController {
         currency: hasDetails ? portfolioPosition.currency : undefined,
         dataSource: portfolioPosition.dataSource,
         dateOfFirstActivity: portfolioPosition.dateOfFirstActivity,
+        marketPrice: hasDetails ? portfolioPosition.marketPrice : undefined,
         markets: hasDetails ? portfolioPosition.markets : undefined,
         name: portfolioPosition.name,
         netPerformancePercentWithCurrencyEffect:
