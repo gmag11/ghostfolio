@@ -1,3 +1,21 @@
 :host {
   display: block;
+
+  ::ng-deep {
+    .mat-mdc-table {
+      .mat-mdc-header-cell[sticky],
+      .mat-mdc-cell[sticky] {
+        background-color: var(--light-background);
+      }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .mat-mdc-table {
+        .mat-mdc-header-cell[sticky],
+        .mat-mdc-cell[sticky] {
+          background-color: var(--dark-background);
+        }
+      }
+    }
+  }
 }

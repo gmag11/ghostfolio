@@ -119,7 +119,7 @@
       </td>
     </ng-container>
 
-    <ng-container matColumnDef="icon" sticky>
+    <ng-container matColumnDef="icon">
       <th *matHeaderCellDef class="px-1" mat-header-cell></th>
       <td *matCellDef="let element" class="px-1 text-center" mat-cell>
         <gf-entity-logo
@@ -130,7 +130,7 @@
       </td>
     </ng-container>
 
-    <ng-container matColumnDef="nameWithSymbol">
+    <ng-container matColumnDef="nameWithSymbol" sticky>
       <th *matHeaderCellDef class="px-1" mat-header-cell>
         <ng-container i18n>Name</ng-container>
       </th>
@@ -184,17 +184,13 @@
     <ng-container matColumnDef="quantity">
       <th
         *matHeaderCellDef
-        class="d-none d-lg-table-cell justify-content-end px-1"
+        class="justify-content-end px-1"
         mat-header-cell
         mat-sort-header
       >
         <ng-container i18n>Quantity</ng-container>
       </th>
-      <td
-        *matCellDef="let element"
-        class="d-none d-lg-table-cell px-1"
-        mat-cell
-      >
+      <td *matCellDef="let element" class="px-1" mat-cell>
         <div class="d-flex justify-content-end">
           <gf-value
             [isCurrency]="true"
@@ -208,17 +204,13 @@
     <ng-container matColumnDef="unitPrice">
       <th
         *matHeaderCellDef
-        class="d-none d-lg-table-cell justify-content-end px-1"
+        class="justify-content-end px-1"
         mat-header-cell
         mat-sort-header
       >
         <ng-container i18n>Unit Price</ng-container>
       </th>
-      <td
-        *matCellDef="let element"
-        class="d-none d-lg-table-cell px-1"
-        mat-cell
-      >
+      <td *matCellDef="let element" class="px-1" mat-cell>
         <div class="d-flex justify-content-end">
           <gf-value
             [isCurrency]="true"
@@ -254,18 +246,10 @@
     </ng-container>
 
     <ng-container matColumnDef="value">
-      <th
-        *matHeaderCellDef
-        class="d-none d-lg-table-cell px-1 text-right"
-        mat-header-cell
-      >
+      <th *matHeaderCellDef class="px-1 text-right" mat-header-cell>
         <ng-container i18n>Value</ng-container>
       </th>
-      <td
-        *matCellDef="let element"
-        class="d-none d-lg-table-cell px-1"
-        mat-cell
-      >
+      <td *matCellDef="let element" class="px-1" mat-cell>
         <div class="d-flex justify-content-end">
           <gf-value
             [isCurrency]="true"
@@ -277,14 +261,10 @@
     </ng-container>
 
     <ng-container matColumnDef="currency">
-      <th *matHeaderCellDef class="d-none d-lg-table-cell px-1" mat-header-cell>
+      <th *matHeaderCellDef class="px-1" mat-header-cell>
         <ng-container i18n>Currency</ng-container>
       </th>
-      <td
-        *matCellDef="let element"
-        class="d-none d-lg-table-cell px-1"
-        mat-cell
-      >
+      <td *matCellDef="let element" class="px-1" mat-cell>
         {{ element.currency ?? element.SymbolProfile?.currency }}
       </td>
     </ng-container>
@@ -350,7 +330,7 @@
       </td>
     </ng-container>
 
-    <ng-container matColumnDef="actions" stickyEnd>
+    <ng-container matColumnDef="actions">
       <th *matHeaderCellDef class="px-1 text-center" mat-header-cell>
         @if (
           !hasPermissionToCreateActivity && hasPermissionToExportActivities
