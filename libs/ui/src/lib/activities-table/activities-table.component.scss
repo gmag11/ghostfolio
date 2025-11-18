@@ -7,6 +7,20 @@
       .mat-mdc-cell[sticky] {
         background-color: var(--light-background);
       }
+
+      // Configurar el ancho de la columna nameWithSymbol y permitir wrap
+      .mat-column-nameWithSymbol {
+        max-width: 400px;
+        min-width: 200px;
+        width: 400px;
+
+        * {
+          white-space: normal !important;
+          overflow: visible !important;
+          text-overflow: unset !important;
+          word-break: break-word !important;
+        }
+      }
     }
 
     @media (prefers-color-scheme: dark) {
@@ -14,6 +28,17 @@
         .mat-mdc-header-cell[sticky],
         .mat-mdc-cell[sticky] {
           background-color: var(--dark-background);
+        }
+      }
+    }
+
+    // En móviles, reducir el ancho
+    @media (max-width: 599px) {
+      .mat-mdc-table {
+        .mat-column-nameWithSymbol {
+          max-width: 300px;
+          min-width: 150px;
+          width: 300px;
         }
       }
     }
