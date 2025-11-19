@@ -113,6 +113,7 @@ export class GfHeaderComponent implements OnChanges {
   public impersonationId: string;
   public internalRoutes = internalRoutes;
   public isMenuOpen: boolean;
+  public isPublicView: boolean;
   public routeAbout = publicRoutes.about.path;
   public routeFeatures = publicRoutes.features.path;
   public routeMarkets = publicRoutes.markets.path;
@@ -193,6 +194,9 @@ export class GfHeaderComponent implements OnChanges {
       this.info?.globalPermissions,
       permissions.createUserAccount
     );
+
+    // Check if we're in the public shared view
+    this.isPublicView = this.currentRoute === 'p';
   }
 
   public closeAssistant() {
