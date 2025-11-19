@@ -15,6 +15,7 @@ import { AssetProfileIdentifier } from '@ghostfolio/common/interfaces';
 
 import { Process, Processor } from '@nestjs/bull';
 import { Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Prisma } from '@prisma/client';
 import { Job } from 'bull';
 import {
@@ -35,6 +36,7 @@ export class DataGatheringProcessor {
   public constructor(
     private readonly dataGatheringService: DataGatheringService,
     private readonly dataProviderService: DataProviderService,
+    private readonly eventEmitter: EventEmitter2,
     private readonly marketDataService: MarketDataService,
     private readonly symbolProfileService: SymbolProfileService
   ) {}
@@ -62,6 +64,9 @@ export class DataGatheringProcessor {
         `Asset profile data gathering has been completed for ${symbol} (${dataSource})`,
         `DataGatheringProcessor (${GATHER_ASSET_PROFILE_PROCESS_JOB_NAME})`
       );
+
+      // Emit event to notify that asset profile gathering is complete
+      this.eventEmitter.emit('asset.profile.gathered', { dataSource, symbol });
     } catch (error) {
       if (error instanceof AssetProfileDelistedError) {
         await this.symbolProfileService.updateSymbolProfile(
