@@ -28,11 +28,13 @@ export const permissions = {
   deleteTag: 'deleteTag',
   deleteUser: 'deleteUser',
   deleteWatchlistItem: 'deleteWatchlistItem',
+  enableAuthGoogle: 'enableAuthGoogle',
+  enableAuthOidc: 'enableAuthOidc',
+  enableAuthToken: 'enableAuthToken',
   enableDataProviderGhostfolio: 'enableDataProviderGhostfolio',
   enableFearAndGreedIndex: 'enableFearAndGreedIndex',
   enableImport: 'enableImport',
   enableBlog: 'enableBlog',
-  enableSocialLogin: 'enableSocialLogin',
   enableStatistics: 'enableStatistics',
   enableSubscription: 'enableSubscription',
   enableSubscriptionInterstitial: 'enableSubscriptionInterstitial',
@@ -157,7 +159,8 @@ export function filterGlobalPermissions(
   if (aUtmSource === 'ios') {
     return globalPermissions.filter((permission) => {
       return (
-        permission !== permissions.enableSocialLogin &&
+        permission !== permissions.enableAuthGoogle &&
+        permission !== permissions.enableAuthOidc &&
         permission !== permissions.enableSubscription
       );
     });
