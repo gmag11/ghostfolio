@@ -1,7 +1,7 @@
 export interface LoginWithAccessTokenDialogParams {
   accessToken: string;
-  hasPermissionToUseSocialLogin: boolean;
-  isAccessTokenLoginEnabled?: boolean;
-  socialLoginProviders?: string[];
+  hasPermissionToUseAuthGoogle: boolean;
+  hasPermissionToUseAuthOidc: boolean;
+  hasPermissionToUseAuthToken: boolean;
   title: string;
 }

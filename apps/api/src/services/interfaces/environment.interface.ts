@@ -16,10 +16,12 @@ export interface Environment extends CleanedEnvAccessors {
   DATA_SOURCE_IMPORT: string;
   DATA_SOURCES: string[];
   DATA_SOURCES_GHOSTFOLIO_DATA_PROVIDER: string[];
-  ENABLE_ACCESS_TOKEN_LOGIN: boolean;
+  ENABLE_FEATURE_AUTH_GOOGLE: boolean;
+  ENABLE_FEATURE_AUTH_OIDC: boolean;
+  ENABLE_FEATURE_AUTH_TOKEN: boolean;
   ENABLE_FEATURE_FEAR_AND_GREED_INDEX: boolean;
+  ENABLE_FEATURE_GATHER_NEW_EXCHANGE_RATES: boolean;
   ENABLE_FEATURE_READ_ONLY_MODE: boolean;
-  ENABLE_FEATURE_SOCIAL_LOGIN: boolean;
   ENABLE_FEATURE_STATISTICS: boolean;
   ENABLE_FEATURE_SUBSCRIPTION: boolean;
   ENABLE_FEATURE_SYSTEM_MESSAGE: boolean;
@@ -35,7 +37,6 @@ export interface Environment extends CleanedEnvAccessors {
   OIDC_CALLBACK_URL: string;
   OIDC_CLIENT_ID: string;
   OIDC_CLIENT_SECRET: string;
-  OIDC_ENABLED: string;
   OIDC_ISSUER: string;
   OIDC_SCOPE: string;
   OIDC_TOKEN_URL: string;

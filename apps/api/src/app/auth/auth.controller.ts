@@ -2,7 +2,11 @@ import { WebAuthService } from '@ghostfolio/api/app/auth/web-auth.service';
 import { HasPermissionGuard } from '@ghostfolio/api/guards/has-permission.guard';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { DEFAULT_LANGUAGE_CODE } from '@ghostfolio/common/config';
-import { OAuthResponse } from '@ghostfolio/common/interfaces';
+import {
+  AssertionCredentialJSON,
+  AttestationCredentialJSON,
+  OAuthResponse
+} from '@ghostfolio/common/interfaces';
 
 import {
   Body,
@@ -22,10 +26,6 @@ import { Request, Response } from 'express';
 import { getReasonPhrase, StatusCodes } from 'http-status-codes';
 
 import { AuthService } from './auth.service';
-import {
-  AssertionCredentialJSON,
-  AttestationCredentialJSON
-} from './interfaces/simplewebauthn';
 
 @Controller('auth')
 export class AuthController {
@@ -104,17 +104,7 @@ export class AuthController {
 
   @Get('oidc')
   @UseGuards(AuthGuard('oidc'))
-  @Version(VERSION_NEUTRAL)
-  public oidcLogin(@Res() response: Response) {
-    // Check if OIDC is enabled
-    const oidcEnabled =
-      this.configurationService.get('OIDC_ENABLED') === 'true';
-
-    if (!oidcEnabled) {
-      response.status(404).send('OIDC authentication is not enabled');
-      return;
-    }
-
+  public oidcLogin() {
     // Initiates the OIDC login flow
   }
 
@@ -122,15 +112,6 @@ export class AuthController {
   @UseGuards(AuthGuard('oidc'))
   @Version(VERSION_NEUTRAL)
   public oidcLoginCallback(@Req() request: Request, @Res() response: Response) {
-    // Check if OIDC is enabled
-    const oidcEnabled =
-      this.configurationService.get('OIDC_ENABLED') === 'true';
-
-    if (!oidcEnabled) {
-      response.status(404).send('OIDC authentication is not enabled');
-      return;
-    }
-
     // Handles the OIDC callback
     const jwt: string = (request.user as any).jwt;
 
@@ -144,7 +125,7 @@ export class AuthController {
       response.redirect(
         `${this.configurationService.get(
           'ROOT_URL'
-        )}/${DEFAULT_LANGUAGE_CODE}/auth?error=oidc_failed`
+        )}/${DEFAULT_LANGUAGE_CODE}/auth`
       );
     }
   }
@@ -155,19 +136,19 @@ export class AuthController {
     return this.webAuthService.generateRegistrationOptions();
   }
 
+  @Post('webauthn/generate-authentication-options')
+  public async generateAuthenticationOptions(
+    @Body() body: { deviceId: string }
+  ) {
+    return this.webAuthService.generateAuthenticationOptions(body.deviceId);
+  }
+
   @Post('webauthn/verify-attestation')
   @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
   public async verifyAttestation(
     @Body() body: { deviceName: string; credential: AttestationCredentialJSON }
   ) {
     return this.webAuthService.verifyAttestation(body.credential);
-  }
-
-  @Post('webauthn/generate-authentication-options')
-  public async generateAuthenticationOptions(
-    @Body() body: { deviceId: string }
-  ) {
-    return this.webAuthService.generateAuthenticationOptions(body.deviceId);
   }
 
   @Post('webauthn/verify-authentication')

@@ -5,13 +5,13 @@ import { UserService } from '@ghostfolio/api/app/user/user.service';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response/transform-data-source-in-response.interceptor';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { DEFAULT_CURRENCY } from '@ghostfolio/common/config';
+import { SubscriptionType } from '@ghostfolio/common/enums';
 import { getSum } from '@ghostfolio/common/helper';
 import {
   AccessSettings,
   Filter,
   PublicPortfolioResponse
 } from '@ghostfolio/common/interfaces';
-import { SubscriptionType } from '@ghostfolio/common/types/subscription-type.type';
 
 import {
   Controller,
@@ -64,7 +64,7 @@ export class PublicController {
 
     // Check if this is an extended view access
     const isExtendedView = access.permissions.includes(
-      AccessPermission.READ_RESTRICTED_EXTENDED
+      'READ_RESTRICTED_EXTENDED' as AccessPermission
     );
 
     // Get filter configuration from access settings

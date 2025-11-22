@@ -51,6 +51,18 @@ export class InfoService {
 
     const globalPermissions: string[] = [];
 
+    if (this.configurationService.get('ENABLE_FEATURE_AUTH_GOOGLE')) {
+      globalPermissions.push(permissions.enableAuthGoogle);
+    }
+
+    if (this.configurationService.get('ENABLE_FEATURE_AUTH_OIDC')) {
+      globalPermissions.push(permissions.enableAuthOidc);
+    }
+
+    if (this.configurationService.get('ENABLE_FEATURE_AUTH_TOKEN')) {
+      globalPermissions.push(permissions.enableAuthToken);
+    }
+
     if (this.configurationService.get('ENABLE_FEATURE_FEAR_AND_GREED_INDEX')) {
       if (this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION')) {
         info.fearAndGreedDataSource = encodeDataSource(
@@ -68,28 +80,6 @@ export class InfoService {
       isReadOnlyMode = await this.propertyService.getByKey<boolean>(
         PROPERTY_IS_READ_ONLY_MODE
       );
-    }
-
-    if (this.configurationService.get('ENABLE_FEATURE_SOCIAL_LOGIN')) {
-      globalPermissions.push(permissions.enableSocialLogin);
-
-      // Determine which social login providers are enabled
-      const socialLoginProviders: string[] = [];
-
-      const googleClientId = this.configurationService.get('GOOGLE_CLIENT_ID');
-      if (
-        googleClientId &&
-        googleClientId.trim() !== '' &&
-        googleClientId !== 'dummyClientId'
-      ) {
-        socialLoginProviders.push('google');
-      }
-
-      if (this.configurationService.get('OIDC_ENABLED') === 'true') {
-        socialLoginProviders.push('oidc');
-      }
-
-      info.socialLoginProviders = socialLoginProviders;
     }
 
     if (this.configurationService.get('ENABLE_FEATURE_STATISTICS')) {
@@ -129,7 +119,7 @@ export class InfoService {
     ]);
 
     const isAccessTokenLoginEnabled = this.configurationService.get(
-      'ENABLE_ACCESS_TOKEN_LOGIN'
+      'ENABLE_FEATURE_AUTH_TOKEN'
     );
 
     if (isUserSignupEnabled && isAccessTokenLoginEnabled) {
@@ -141,7 +131,7 @@ export class InfoService {
       benchmarks,
       demoAuthToken,
       globalPermissions,
-      isAccessTokenLoginEnabled,
+      isAccessTokenLoginEnabled: Boolean(isAccessTokenLoginEnabled),
       isReadOnlyMode,
       platforms,
       statistics,

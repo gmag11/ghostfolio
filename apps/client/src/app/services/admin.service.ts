@@ -1,19 +1,22 @@
-import { UpdateAssetProfileDto } from '@ghostfolio/api/app/admin/update-asset-profile.dto';
-import { CreatePlatformDto } from '@ghostfolio/api/app/platform/create-platform.dto';
-import { UpdatePlatformDto } from '@ghostfolio/api/app/platform/update-platform.dto';
-import { DataProviderHistoricalResponse } from '@ghostfolio/api/services/interfaces/interfaces';
 import {
+  DEFAULT_PAGE_SIZE,
   HEADER_KEY_SKIP_INTERCEPTOR,
   HEADER_KEY_TOKEN
 } from '@ghostfolio/common/config';
-import { DEFAULT_PAGE_SIZE } from '@ghostfolio/common/config';
 import {
-  AssetProfileIdentifier,
+  CreatePlatformDto,
+  UpdateAssetProfileDto,
+  UpdatePlatformDto
+} from '@ghostfolio/common/dtos';
+import {
   AdminData,
   AdminJobs,
   AdminMarketData,
+  AdminUserResponse,
   AdminUsersResponse,
+  AssetProfileIdentifier,
   DataProviderGhostfolioStatusResponse,
+  DataProviderHistoricalResponse,
   EnhancedSymbolProfile,
   Filter
 } from '@ghostfolio/common/interfaces';
@@ -140,6 +143,10 @@ export class AdminService {
 
   public fetchPlatforms() {
     return this.http.get<Platform[]>('/api/v1/platform');
+  }
+
+  public fetchUserById(id: string) {
+    return this.http.get<AdminUserResponse>(`/api/v1/admin/user/${id}`);
   }
 
   public fetchUsers({

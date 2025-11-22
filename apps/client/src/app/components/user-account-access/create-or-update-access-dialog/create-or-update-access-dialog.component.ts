@@ -1,11 +1,13 @@
-import { CreateAccessDto } from '@ghostfolio/api/app/access/create-access.dto';
-import { UpdateAccessDto } from '@ghostfolio/api/app/access/update-access.dto';
+import { NotificationService } from '@ghostfolio/client/core/notification/notification.service';
+import { DataService } from '@ghostfolio/client/services/data.service';
+import { CreateAccessDto, UpdateAccessDto } from '@ghostfolio/common/dtos';
 import {
   AssetProfileIdentifier,
   Filter,
   PortfolioPosition
 } from '@ghostfolio/common/interfaces';
 import { AccountWithPlatform } from '@ghostfolio/common/types';
+import { validateObjectForForm } from '@ghostfolio/common/utils';
 import {
   GfPortfolioFilterFormComponent,
   PortfolioFilterFormValue
@@ -40,10 +42,7 @@ import { AccessPermission } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { EMPTY, Subject, catchError, takeUntil } from 'rxjs';
 
-import { NotificationService } from '../../../core/notification/notification.service';
-import { DataService } from '../../../services/data.service';
 import { UserService } from '../../../services/user/user.service';
-import { validateObjectForForm } from '../../../util/form.util';
 import { CreateOrUpdateAccessDialogParams } from './interfaces/interfaces';
 
 @Component({
