@@ -112,11 +112,10 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
             permissions.deleteAccess
           );
 
-          this.hasPermissionToUpdateOwnAccessToken =
-            hasPermission(
-              this.user.permissions,
-              permissions.updateOwnAccessToken
-            ) && this.info?.isAccessTokenLoginEnabled !== false;
+          this.hasPermissionToUpdateOwnAccessToken = hasPermission(
+            this.user.permissions,
+            permissions.updateOwnAccessToken
+          );
 
           this.changeDetectorRef.markForCheck();
         }
