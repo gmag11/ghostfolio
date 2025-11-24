@@ -528,16 +528,22 @@ export class AdminService {
     skip?: number;
     take?: number;
   }): Promise<AdminUsersResponse> {
+    let where: Prisma.UserWhereInput;
+
+    if (this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION')) {
+      where = {
+        NOT: {
+          analytics: null
+        }
+      };
+    }
+
     const [count, users] = await Promise.all([
       this.countUsersWithAnalytics(),
       this.getUsersWithAnalytics({
         skip,
         take,
-        where: {
-          NOT: {
-            analytics: null
-          }
-        }
+        where
       })
     ]);
 
@@ -583,8 +589,8 @@ export class AdminService {
       }
 
       try {
-        Promise.all([
-          await this.symbolProfileService.updateAssetProfileIdentifier(
+        await Promise.all([
+          this.symbolProfileService.updateAssetProfileIdentifier(
             {
               dataSource,
               symbol
@@ -594,7 +600,7 @@ export class AdminService {
               symbol: newSymbol as string
             }
           ),
-          await this.marketDataService.updateAssetProfileIdentifier(
+          this.marketDataService.updateAssetProfileIdentifier(
             {
               dataSource,
               symbol
