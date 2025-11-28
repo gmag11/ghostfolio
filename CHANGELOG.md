@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Added OIDC (_OpenID Connect_) as a login auth provider
+
 ### Changed
 
 - Eliminated `uuid` in favor of using `randomUUID` from `node:crypto`
+- Upgraded `color` from version `5.0.0` to `5.0.3`
 
 ### Fixed
 
@@ -20,7 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Extended the user detail dialog of the admin control panel’s users section by the authentication method
-- Added OIDC (OpenID Connect) as a login auth provider
 
 ### Changed
 

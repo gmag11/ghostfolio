@@ -84,7 +84,6 @@ export class AuthController {
     @Req() request: Request,
     @Res() response: Response
   ) {
-    // Handles the Google OAuth2 callback
     const jwt: string = (request.user as any).jwt;
 
     if (jwt) {
@@ -104,7 +103,15 @@ export class AuthController {
 
   @Get('oidc')
   @UseGuards(AuthGuard('oidc'))
+  @Version(VERSION_NEUTRAL)
   public oidcLogin() {
+    if (!this.configurationService.get('ENABLE_FEATURE_AUTH_OIDC')) {
+      throw new HttpException(
+        getReasonPhrase(StatusCodes.FORBIDDEN),
+        StatusCodes.FORBIDDEN
+      );
+    }
+
     // Initiates the OIDC login flow
   }
 
@@ -112,7 +119,6 @@ export class AuthController {
   @UseGuards(AuthGuard('oidc'))
   @Version(VERSION_NEUTRAL)
   public oidcLoginCallback(@Req() request: Request, @Res() response: Response) {
-    // Handles the OIDC callback
     const jwt: string = (request.user as any).jwt;
 
     if (jwt) {
@@ -130,17 +136,17 @@ export class AuthController {
     }
   }
 
-  @Get('webauthn/generate-registration-options')
-  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
-  public async generateRegistrationOptions() {
-    return this.webAuthService.generateRegistrationOptions();
-  }
-
   @Post('webauthn/generate-authentication-options')
   public async generateAuthenticationOptions(
     @Body() body: { deviceId: string }
   ) {
     return this.webAuthService.generateAuthenticationOptions(body.deviceId);
+  }
+
+  @Get('webauthn/generate-registration-options')
+  @UseGuards(AuthGuard('jwt'), HasPermissionGuard)
+  public async generateRegistrationOptions() {
+    return this.webAuthService.generateRegistrationOptions();
   }
 
   @Post('webauthn/verify-attestation')
