@@ -1,5 +1,6 @@
 import { NotificationService } from '@ghostfolio/client/core/notification/notification.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
+import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { CreateAccessDto, UpdateAccessDto } from '@ghostfolio/common/dtos';
 import {
   AssetProfileIdentifier,
@@ -42,7 +43,6 @@ import { AccessPermission } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { EMPTY, Subject, catchError, takeUntil } from 'rxjs';
 
-import { UserService } from '../../../services/user/user.service';
 import { CreateOrUpdateAccessDialogParams } from './interfaces/interfaces';
 
 @Component({
