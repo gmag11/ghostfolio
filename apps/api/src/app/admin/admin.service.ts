@@ -528,22 +528,11 @@ export class AdminService {
     skip?: number;
     take?: number;
   }): Promise<AdminUsersResponse> {
-    let where: Prisma.UserWhereInput;
-
-    if (this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION')) {
-      where = {
-        NOT: {
-          analytics: null
-        }
-      };
-    }
-
     const [count, users] = await Promise.all([
       this.countUsersWithAnalytics(),
       this.getUsersWithAnalytics({
         skip,
-        take,
-        where
+        take
       })
     ]);
 
@@ -589,8 +578,8 @@ export class AdminService {
       }
 
       try {
-        await Promise.all([
-          this.symbolProfileService.updateAssetProfileIdentifier(
+        Promise.all([
+          await this.symbolProfileService.updateAssetProfileIdentifier(
             {
               dataSource,
               symbol
@@ -600,7 +589,7 @@ export class AdminService {
               symbol: newSymbol as string
             }
           ),
-          this.marketDataService.updateAssetProfileIdentifier(
+          await this.marketDataService.updateAssetProfileIdentifier(
             {
               dataSource,
               symbol
@@ -861,6 +850,20 @@ export class AdminService {
           }
         }
       ];
+
+      const noAnalyticsCondition: Prisma.UserWhereInput['NOT'] = {
+        analytics: null
+      };
+
+      if (where) {
+        if (where.NOT) {
+          where.NOT = { ...where.NOT, ...noAnalyticsCondition };
+        } else {
+          where.NOT = noAnalyticsCondition;
+        }
+      } else {
+        where = { NOT: noAnalyticsCondition };
+      }
     }
 
     const usersWithAnalytics = await this.prismaService.user.findMany({
