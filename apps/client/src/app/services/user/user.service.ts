@@ -65,7 +65,12 @@ export class UserService extends ObservableStore<UserStoreState> {
       });
     }
 
-    if (user?.settings['filters.dataSource']) {
+    // Only add dataSource filter if there's no symbol filter
+    // When filtering by symbol (holding), we want to ignore the dataSource
+    if (
+      user?.settings['filters.dataSource'] &&
+      !user?.settings['filters.symbol']
+    ) {
       filters.push({
         id: user.settings['filters.dataSource'],
         type: 'DATA_SOURCE'
