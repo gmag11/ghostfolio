@@ -511,17 +511,13 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       {
         id: filterValue?.tag,
         type: 'TAG'
+      },
+      {
+        // Always send SYMBOL filter to clear it when holding is removed
+        id: filterValue?.holding?.symbol ?? null,
+        type: 'SYMBOL'
       }
     ];
-
-    // If a holding is selected, filter only by symbol (ignore dataSource)
-    // This will show all holdings/activities with that symbol regardless of provider
-    if (filterValue?.holding?.symbol) {
-      filters.push({
-        id: filterValue.holding.symbol,
-        type: 'SYMBOL'
-      });
-    }
 
     this.filtersChanged.emit(filters);
 
