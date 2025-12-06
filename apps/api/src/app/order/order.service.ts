@@ -376,18 +376,12 @@ export class OrderService {
     const {
       ACCOUNT: filtersByAccount,
       ASSET_CLASS: filtersByAssetClass,
+      DATA_SOURCE: filtersByDataSource,
+      SYMBOL: filtersBySymbol,
       TAG: filtersByTag
     } = groupBy(filters, ({ type }) => {
       return type;
     });
-
-    const filterByDataSource = filters?.find(({ type }) => {
-      return type === 'DATA_SOURCE';
-    })?.id;
-
-    const filterBySymbol = filters?.find(({ type }) => {
-      return type === 'SYMBOL';
-    })?.id;
 
     const searchQuery = filters?.find(({ type }) => {
       return type === 'SEARCH_QUERY';
@@ -434,26 +428,32 @@ export class OrderService {
       };
     }
 
-    if (filterByDataSource && filterBySymbol) {
+    if (filtersByDataSource?.length > 0 && filtersBySymbol?.length > 0) {
+      // Create OR conditions for each dataSource/symbol pair
+      const symbolProfileConditions: Prisma.SymbolProfileWhereInput[] = [];
+
+      for (const dataSourceFilter of filtersByDataSource) {
+        for (const symbolFilter of filtersBySymbol) {
+          symbolProfileConditions.push({
+            AND: [
+              { dataSource: dataSourceFilter.id as DataSource },
+              { symbol: symbolFilter.id }
+            ]
+          });
+        }
+      }
+
+      const symbolProfileFilter: Prisma.SymbolProfileWhereInput =
+        symbolProfileConditions.length === 1
+          ? symbolProfileConditions[0]
+          : { OR: symbolProfileConditions };
+
       if (where.SymbolProfile) {
         where.SymbolProfile = {
-          AND: [
-            where.SymbolProfile,
-            {
-              AND: [
-                { dataSource: filterByDataSource as DataSource },
-                { symbol: filterBySymbol }
-              ]
-            }
-          ]
+          AND: [where.SymbolProfile, symbolProfileFilter]
         };
       } else {
-        where.SymbolProfile = {
-          AND: [
-            { dataSource: filterByDataSource as DataSource },
-            { symbol: filterBySymbol }
-          ]
-        };
+        where.SymbolProfile = symbolProfileFilter;
       }
     }
 

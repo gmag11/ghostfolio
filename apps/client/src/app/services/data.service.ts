@@ -93,22 +93,28 @@ export class DataService {
         ACCOUNT: filtersByAccount,
         ASSET_CLASS: filtersByAssetClass,
         ASSET_SUB_CLASS: filtersByAssetSubClass,
-        DATA_SOURCE: [filterByDataSource] = [],
+        DATA_SOURCE: filtersByDataSource,
         HOLDING_TYPE: filtersByHoldingType,
         PRESET_ID: filtersByPresetId,
         SEARCH_QUERY: filtersBySearchQuery,
-        SYMBOL: [filterBySymbol] = [],
+        SYMBOL: filtersBySymbol,
         TAG: filtersByTag
       } = groupBy(filters, (filter) => {
         return filter.type;
       });
 
-      if (filterByDataSource) {
-        params = params.append('dataSource', filterByDataSource.id);
+      if (filtersByDataSource?.length > 0) {
+        params = params.append(
+          'dataSource',
+          filtersByDataSource.map(({ id }) => id).join(',')
+        );
       }
 
-      if (filterBySymbol) {
-        params = params.append('symbol', filterBySymbol.id);
+      if (filtersBySymbol?.length > 0) {
+        params = params.append(
+          'symbol',
+          filtersBySymbol.map(({ id }) => id).join(',')
+        );
       }
 
       if (filtersByAccount) {

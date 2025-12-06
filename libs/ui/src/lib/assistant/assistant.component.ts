@@ -500,7 +500,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   public onApplyFilters() {
     const filterValue = this.portfolioFilterFormControl.value;
 
-    this.filtersChanged.emit([
+    const filters: Filter[] = [
       {
         id: filterValue?.account,
         type: 'ACCOUNT'
@@ -510,18 +510,32 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
         type: 'ASSET_CLASS'
       },
       {
-        id: filterValue?.holding?.dataSource,
-        type: 'DATA_SOURCE'
-      },
-      {
-        id: filterValue?.holding?.symbol,
-        type: 'SYMBOL'
-      },
-      {
         id: filterValue?.tag,
         type: 'TAG'
       }
-    ]);
+    ];
+
+    // If a holding is selected, find all holdings with the same symbol
+    // and create filters for each dataSource/symbol combination
+    if (filterValue?.holding?.symbol) {
+      const selectedSymbol = filterValue.holding.symbol;
+      const matchingHoldings = this.holdings.filter(
+        ({ symbol }) => symbol === selectedSymbol
+      );
+
+      for (const holding of matchingHoldings) {
+        filters.push({
+          id: holding.dataSource,
+          type: 'DATA_SOURCE'
+        });
+        filters.push({
+          id: holding.symbol,
+          type: 'SYMBOL'
+        });
+      }
+    }
+
+    this.filtersChanged.emit(filters);
 
     this.onCloseAssistant();
   }
