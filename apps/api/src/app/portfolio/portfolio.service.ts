@@ -88,6 +88,7 @@ import {
   parseISO,
   set
 } from 'date-fns';
+import { groupBy } from 'lodash';
 
 import { PortfolioCalculator } from './calculator/portfolio-calculator';
 import { PortfolioCalculatorFactory } from './calculator/portfolio-calculator.factory';
@@ -129,31 +130,38 @@ export class PortfolioService {
   }): Promise<AccountWithValue[]> {
     const where: Prisma.AccountWhereInput = { userId };
 
-    const filterByAccount = filters?.find(({ type }) => {
-      return type === 'ACCOUNT';
-    })?.id;
-
-    const filterByDataSource = filters?.find(({ type }) => {
-      return type === 'DATA_SOURCE';
-    })?.id;
-
-    const filterBySymbol = filters?.find(({ type }) => {
-      return type === 'SYMBOL';
-    })?.id;
+    const {
+      ACCOUNT: [filterByAccount] = [],
+      DATA_SOURCE: filtersByDataSource,
+      SYMBOL: filtersBySymbol
+    } = groupBy(filters, ({ type }) => {
+      return type;
+    });
 
     if (filterByAccount) {
-      where.id = filterByAccount;
+      where.id = filterByAccount.id;
     }
 
-    if (filterByDataSource && filterBySymbol) {
+    if (filtersByDataSource?.length > 0 && filtersBySymbol?.length > 0) {
+      const symbolProfileConditions: Prisma.SymbolProfileWhereInput[] = [];
+
+      for (const dataSourceFilter of filtersByDataSource) {
+        for (const symbolFilter of filtersBySymbol) {
+          symbolProfileConditions.push({
+            AND: [
+              { dataSource: dataSourceFilter.id as DataSource },
+              { symbol: symbolFilter.id }
+            ]
+          });
+        }
+      }
+
       where.activities = {
         some: {
-          SymbolProfile: {
-            AND: [
-              { dataSource: filterByDataSource as DataSource },
-              { symbol: filterBySymbol }
-            ]
-          }
+          SymbolProfile:
+            symbolProfileConditions.length === 1
+              ? symbolProfileConditions[0]
+              : { OR: symbolProfileConditions }
         }
       };
     }
