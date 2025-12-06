@@ -687,32 +687,49 @@ export class OrderService {
       };
     }
 
-    if (filtersByDataSource?.length > 0 && filtersBySymbol?.length > 0) {
-      // Create OR conditions for each dataSource/symbol pair
-      const symbolProfileConditions: Prisma.SymbolProfileWhereInput[] = [];
+    // Handle symbol and dataSource filtering
+    if (filtersBySymbol?.length > 0) {
+      if (filtersByDataSource?.length > 0) {
+        // Both dataSource and symbol specified: create OR conditions for each pair
+        const symbolProfileConditions: Prisma.SymbolProfileWhereInput[] = [];
 
-      for (const dataSourceFilter of filtersByDataSource) {
-        for (const symbolFilter of filtersBySymbol) {
-          symbolProfileConditions.push({
-            AND: [
-              { dataSource: dataSourceFilter.id as DataSource },
-              { symbol: symbolFilter.id }
-            ]
-          });
+        for (const dataSourceFilter of filtersByDataSource) {
+          for (const symbolFilter of filtersBySymbol) {
+            symbolProfileConditions.push({
+              AND: [
+                { dataSource: dataSourceFilter.id as DataSource },
+                { symbol: symbolFilter.id }
+              ]
+            });
+          }
         }
-      }
 
-      const symbolProfileFilter: Prisma.SymbolProfileWhereInput =
-        symbolProfileConditions.length === 1
-          ? symbolProfileConditions[0]
-          : { OR: symbolProfileConditions };
+        const symbolProfileFilter: Prisma.SymbolProfileWhereInput =
+          symbolProfileConditions.length === 1
+            ? symbolProfileConditions[0]
+            : { OR: symbolProfileConditions };
 
-      if (where.SymbolProfile) {
-        where.SymbolProfile = {
-          AND: [where.SymbolProfile, symbolProfileFilter]
-        };
+        if (where.SymbolProfile) {
+          where.SymbolProfile = {
+            AND: [where.SymbolProfile, symbolProfileFilter]
+          };
+        } else {
+          where.SymbolProfile = symbolProfileFilter;
+        }
       } else {
-        where.SymbolProfile = symbolProfileFilter;
+        // Only symbol specified: filter by symbol regardless of dataSource
+        const symbolFilter: Prisma.SymbolProfileWhereInput =
+          filtersBySymbol.length === 1
+            ? { symbol: filtersBySymbol[0].id }
+            : { OR: filtersBySymbol.map(({ id }) => ({ symbol: id })) };
+
+        if (where.SymbolProfile) {
+          where.SymbolProfile = {
+            AND: [where.SymbolProfile, symbolFilter]
+          };
+        } else {
+          where.SymbolProfile = symbolFilter;
+        }
       }
     }
 

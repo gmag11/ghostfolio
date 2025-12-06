@@ -515,24 +515,13 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       }
     ];
 
-    // If a holding is selected, find all holdings with the same symbol
-    // and create filters for each dataSource/symbol combination
+    // If a holding is selected, filter only by symbol (ignore dataSource)
+    // This will show all holdings/activities with that symbol regardless of provider
     if (filterValue?.holding?.symbol) {
-      const selectedSymbol = filterValue.holding.symbol;
-      const matchingHoldings = this.holdings.filter(
-        ({ symbol }) => symbol === selectedSymbol
-      );
-
-      for (const holding of matchingHoldings) {
-        filters.push({
-          id: holding.dataSource,
-          type: 'DATA_SOURCE'
-        });
-        filters.push({
-          id: holding.symbol,
-          type: 'SYMBOL'
-        });
-      }
+      filters.push({
+        id: filterValue.holding.symbol,
+        type: 'SYMBOL'
+      });
     }
 
     this.filtersChanged.emit(filters);
