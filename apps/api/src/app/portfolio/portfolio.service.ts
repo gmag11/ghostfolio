@@ -142,31 +142,42 @@ export class PortfolioService {
       where.id = filterByAccount.id;
     }
 
-    if (filtersByDataSource?.length > 0 && filtersBySymbol?.length > 0) {
-      const symbolProfileConditions: Prisma.SymbolProfileWhereInput[] = [];
-
-      for (const dataSourceFilter of filtersByDataSource) {
-        for (const symbolFilter of filtersBySymbol) {
-          symbolProfileConditions.push({
-            AND: [
-              { dataSource: dataSourceFilter.id as DataSource },
-              { symbol: symbolFilter.id }
-            ]
-          });
+    if (filtersBySymbol?.length > 0) {
+      if (filtersByDataSource?.length > 0) {
+        // Both dataSource and symbol specified: create OR conditions for each pair
+        const symbolProfileConditions: Prisma.SymbolProfileWhereInput[] = [];
+        
+        for (const dataSourceFilter of filtersByDataSource) {
+          for (const symbolFilter of filtersBySymbol) {
+            symbolProfileConditions.push({
+              AND: [
+                { dataSource: dataSourceFilter.id as DataSource },
+                { symbol: symbolFilter.id }
+              ]
+            });
+          }
         }
+
+        where.activities = {
+          some: {
+            SymbolProfile:
+              symbolProfileConditions.length === 1
+                ? symbolProfileConditions[0]
+                : { OR: symbolProfileConditions }
+          }
+        };
+      } else {
+        // Only symbol specified: filter by symbol regardless of dataSource
+        where.activities = {
+          some: {
+            SymbolProfile:
+              filtersBySymbol.length === 1
+                ? { symbol: filtersBySymbol[0].id }
+                : { OR: filtersBySymbol.map(({ id }) => ({ symbol: id })) }
+          }
+        };
       }
-
-      where.activities = {
-        some: {
-          SymbolProfile:
-            symbolProfileConditions.length === 1
-              ? symbolProfileConditions[0]
-              : { OR: symbolProfileConditions }
-        }
-      };
-    }
-
-    const [accounts, details] = await Promise.all([
+    }    const [accounts, details] = await Promise.all([
       this.accountService.accounts({
         where,
         include: {
