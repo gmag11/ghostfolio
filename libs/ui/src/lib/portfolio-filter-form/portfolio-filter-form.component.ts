@@ -1,4 +1,3 @@
-import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
 import { Filter, PortfolioPosition } from '@ghostfolio/common/interfaces';
 import { GfSymbolPipe } from '@ghostfolio/common/pipes';
 import { AccountWithPlatform } from '@ghostfolio/common/types';
@@ -102,9 +101,8 @@ export class GfPortfolioFilterFormComponent
       return false;
     }
 
-    return (
-      getAssetProfileIdentifier(option) === getAssetProfileIdentifier(value)
-    );
+    // Compare only by symbol to allow selecting holdings regardless of dataSource
+    return option?.symbol === value?.symbol;
   }
 
   public ngOnChanges() {
