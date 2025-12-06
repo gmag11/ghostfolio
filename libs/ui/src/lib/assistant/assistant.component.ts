@@ -1,7 +1,6 @@
 /* eslint-disable @nx/enforce-module-boundaries */
 import { AdminService } from '@ghostfolio/client/services/admin.service';
 import { DataService } from '@ghostfolio/client/services/data.service';
-import { getAssetProfileIdentifier } from '@ghostfolio/common/helper';
 import { Filter, PortfolioPosition, User } from '@ghostfolio/common/interfaces';
 import { InternalRoute } from '@ghostfolio/common/routes/interfaces/internal-route.interface';
 import { internalRoutes } from '@ghostfolio/common/routes/routes';
@@ -32,7 +31,7 @@ import { MatMenuTrigger } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
-import { AssetClass, DataSource } from '@prisma/client';
+import { AssetClass } from '@prisma/client';
 import { differenceInYears } from 'date-fns';
 import Fuse from 'fuse.js';
 import { addIcons } from 'ionicons';
@@ -755,18 +754,13 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   }
 
   private setPortfolioFilterFormValues() {
-    const dataSource = this.user?.settings?.[
-      'filters.dataSource'
-    ] as DataSource;
     const symbol = this.user?.settings?.['filters.symbol'];
-    const selectedHolding = this.holdings.find((holding) => {
-      return (
-        getAssetProfileIdentifier({
-          dataSource: holding.dataSource,
-          symbol: holding.symbol
-        }) === getAssetProfileIdentifier({ dataSource, symbol })
-      );
-    });
+
+    // When a symbol filter is saved, find any holding with that symbol
+    // (ignore dataSource to show all holdings with the same symbol)
+    const selectedHolding = symbol
+      ? this.holdings.find((holding) => holding.symbol === symbol)
+      : null;
 
     this.portfolioFilterFormControl.setValue({
       account: this.user?.settings?.['filters.accounts']?.[0] ?? null,
