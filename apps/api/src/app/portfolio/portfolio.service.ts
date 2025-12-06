@@ -146,7 +146,7 @@ export class PortfolioService {
       if (filtersByDataSource?.length > 0) {
         // Both dataSource and symbol specified: create OR conditions for each pair
         const symbolProfileConditions: Prisma.SymbolProfileWhereInput[] = [];
-        
+
         for (const dataSourceFilter of filtersByDataSource) {
           for (const symbolFilter of filtersBySymbol) {
             symbolProfileConditions.push({
@@ -177,7 +177,8 @@ export class PortfolioService {
           }
         };
       }
-    }    const [accounts, details] = await Promise.all([
+    }
+    const [accounts, details] = await Promise.all([
       this.accountService.accounts({
         where,
         include: {
