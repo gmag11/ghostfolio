@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Introduced data source transformation support in the import functionality for self-hosted environments
 - Added _OpenID Connect_ (`OIDC`) as a new login provider for self-hosted environments (experimental)
 - Added an optional 3D hover effect to the membership card component
-- Added _OpenID Connect_ (`OIDC`) as a new login provider (experimental)
 
 ### Changed
 
