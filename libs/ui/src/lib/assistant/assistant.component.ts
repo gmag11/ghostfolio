@@ -32,7 +32,7 @@ import { MatSelectModule } from '@angular/material/select';
 import { RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
 import { AssetClass } from '@prisma/client';
-import { differenceInYears } from 'date-fns';
+import { differenceInYears, eachYearOfInterval, format } from 'date-fns';
 import Fuse from 'fuse.js';
 import { addIcons } from 'ionicons';
 import {
@@ -87,38 +87,6 @@ import {
   templateUrl: './assistant.html'
 })
 export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
-  @HostListener('document:keydown', ['$event']) onKeydown(
-    event: KeyboardEvent
-  ) {
-    if (!this.isOpen) {
-      return;
-    }
-
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      for (const item of this.assistantListItems) {
-        item.removeFocus();
-      }
-
-      this.keyManager.onKeydown(event);
-
-      const currentAssistantListItem = this.getCurrentAssistantListItem();
-
-      if (currentAssistantListItem?.linkElement) {
-        currentAssistantListItem.linkElement.nativeElement?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center'
-        });
-      }
-    } else if (event.key === 'Enter') {
-      const currentAssistantListItem = this.getCurrentAssistantListItem();
-
-      if (currentAssistantListItem?.linkElement) {
-        currentAssistantListItem.linkElement.nativeElement?.click();
-        event.stopPropagation();
-      }
-    }
-  }
-
   @Input() deviceType: string;
   @Input() hasPermissionToAccessAdminControl: boolean;
   @Input() hasPermissionToChangeDateRange: boolean;
@@ -187,6 +155,38 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
     private dataService: DataService
   ) {
     addIcons({ closeCircleOutline, closeOutline, searchOutline });
+  }
+
+  @HostListener('document:keydown', ['$event']) onKeydown(
+    event: KeyboardEvent
+  ) {
+    if (!this.isOpen) {
+      return;
+    }
+
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      for (const item of this.assistantListItems) {
+        item.removeFocus();
+      }
+
+      this.keyManager.onKeydown(event);
+
+      const currentAssistantListItem = this.getCurrentAssistantListItem();
+
+      if (currentAssistantListItem?.linkElement) {
+        currentAssistantListItem.linkElement.nativeElement?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    } else if (event.key === 'Enter') {
+      const currentAssistantListItem = this.getCurrentAssistantListItem();
+
+      if (currentAssistantListItem?.linkElement) {
+        currentAssistantListItem.linkElement.nativeElement?.click();
+        event.stopPropagation();
+      }
+    }
   }
 
   public ngOnInit() {
@@ -388,20 +388,19 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       });
     }
 
-    // TODO
-    // if (this.user?.settings?.isExperimentalFeatures) {
-    //   this.dateRangeOptions = this.dateRangeOptions.concat(
-    //     eachYearOfInterval({
-    //       end: new Date(),
-    //       start: this.user?.dateOfFirstActivity ?? new Date()
-    //     })
-    //       .map((date) => {
-    //         return { label: format(date, 'yyyy'), value: format(date, 'yyyy') };
-    //       })
-    //       .slice(0, -1)
-    //       .reverse()
-    //   );
-    // }
+    if (this.user?.settings?.isExperimentalFeatures) {
+      this.dateRangeOptions = this.dateRangeOptions.concat(
+        eachYearOfInterval({
+          end: new Date(),
+          start: this.user?.dateOfFirstActivity ?? new Date()
+        })
+          .map((date) => {
+            return { label: format(date, 'yyyy'), value: format(date, 'yyyy') };
+          })
+          .slice(0, -1)
+          .reverse()
+      );
+    }
 
     if (
       this.user?.dateOfFirstActivity &&
