@@ -13,9 +13,14 @@ export interface InfoItem {
   globalPermissions: string[];
   isDataGatheringEnabled?: string;
   isReadOnlyMode?: boolean;
+
+  /** @deprecated */
   platforms: Platform[];
-  socialLoginProviders?: string[];
+
   statistics: Statistics;
+
+  /** @deprecated */
   stripePublicKey?: string;
+
   subscriptionOffer?: SubscriptionOffer;
 }
