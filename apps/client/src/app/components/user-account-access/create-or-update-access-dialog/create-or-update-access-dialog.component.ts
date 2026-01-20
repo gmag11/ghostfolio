@@ -1,4 +1,3 @@
-import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { CreateAccessDto, UpdateAccessDto } from '@ghostfolio/common/dtos';
 import {
@@ -13,6 +12,7 @@ import {
   GfPortfolioFilterFormComponent,
   PortfolioFilterFormValue
 } from '@ghostfolio/ui/portfolio-filter-form';
+import { DataService } from '@ghostfolio/ui/services';
 
 import {
   ChangeDetectionStrategy,

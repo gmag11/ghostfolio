@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Removed the deprecated `firstBuyDate` from the endpoint `GET api/v1/portfolio/holding/:dataSource/:symbol`
+
+## 2.232.0 - 2026-01-19
+
+### Added
+
+- Extended the analysis page to include the total amount, change and performance with currency effects (experimental)
+
+### Changed
+
+- Deprecated `firstBuyDate` in favor of `dateOfFirstActivity` in the endpoint `GET api/v1/portfolio/holding/:dataSource/:symbol`
+- Improved the language localization for German (`de`)
+- Upgraded `countries-list` from version `3.2.0` to `3.2.2`
+
+## 2.231.0 - 2026-01-17
+
+### Changed
+
+- Removed the deprecated platforms from the info service
+- Removed the deprecated activities from the endpoint `GET api/v1/portfolio/holding/:dataSource/:symbol`
+
+### Fixed
+
+- Fixed a numeric parsing error related to cash positions on the _X-ray_ page
+- Fixed the total fee calculation in the holding detail dialog related to activities in a custom currency
+- Fixed the total fee calculation in the summary related to activities in a custom currency
+
+## 2.230.0 - 2026-01-14
+
+### Added
+
+- Set up the language localization for Korean (`ko`)
+
+### Changed
+
+- Restored the support for specific calendar year date ranges (`2024`, `2023`, `2022`, etc.) in the holdings table (experimental)
+
+### Fixed
+
+- Fixed the total fee calculation in the holding detail dialog related to activities in a custom currency
+- Fixed the total fee calculation in the summary related to activities in a custom currency
+
+## 2.229.0 - 2026-01-11
+
+### Changed
+
+- Set the active sort column in the accounts table component
+- Deprecated `activities` in the endpoint `GET api/v1/portfolio/holding/:dataSource/:symbol`
+- Moved the admin service to `@ghostfolio/ui/services`
+- Moved the data service to `@ghostfolio/ui/services`
+- Refactored the dividend import
+- Refreshed the cryptocurrencies list
+
+### Fixed
+
+- Fixed the net worth calculation to prevent the double counting of cash positions
+- Fixed the filtering by asset class in the endpoint `GET api/v1/portfolio/holdings`
+- Fixed the case-insensitive sorting in the accounts table component
+- Fixed the case-insensitive sorting in the benchmark component
+- Fixed the case-insensitive sorting in the holdings table component
+
+## 2.228.0 - 2026-01-03
+
 ### Added
 
 - Extended the portfolio holdings to include performance with currency effects for cash positions
@@ -16,6 +81,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integrated the endpoint to get all platforms (`GET api/v1/platforms`) into the create or update account dialog
 - Extracted the scraper configuration to a dedicated tab in the asset profile details dialog of the admin control panel
 - Improved the language localization for German (`de`)
+- Upgraded `@date-fns/utc` from version `2.1.0` to `2.1.1`
+
+### Fixed
+
+- Improved the table headers’ alignment of the accounts table on mobile
 
 ## 2.227.0 - 2026-01-02
 

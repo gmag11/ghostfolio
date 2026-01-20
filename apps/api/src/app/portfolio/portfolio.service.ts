@@ -814,7 +814,7 @@ export class PortfolioService {
       averagePrice,
       currency,
       dividendInBaseCurrency,
-      fee,
+      feeInBaseCurrency,
       firstBuyDate,
       grossPerformance,
       grossPerformancePercentage,
@@ -936,25 +936,20 @@ export class PortfolioService {
       );
 
     return {
-      firstBuyDate,
       marketPrice,
       marketPriceMax,
       marketPriceMin,
       SymbolProfile,
       tags,
-      activities: activitiesOfHolding,
       activitiesCount: transactionCount,
       averagePrice: averagePrice.toNumber(),
       dataProviderInfo: portfolioCalculator.getDataProviderInfos()?.[0],
+      dateOfFirstActivity: firstBuyDate,
       dividendInBaseCurrency: dividendInBaseCurrency.toNumber(),
       dividendYieldPercent: dividendYieldPercent.toNumber(),
       dividendYieldPercentWithCurrencyEffect:
         dividendYieldPercentWithCurrencyEffect.toNumber(),
-      feeInBaseCurrency: this.exchangeRateDataService.toCurrency(
-        fee.toNumber(),
-        SymbolProfile.currency,
-        userCurrency
-      ),
+      feeInBaseCurrency: feeInBaseCurrency.toNumber(),
       grossPerformance: grossPerformance?.toNumber(),
       grossPerformancePercent: grossPerformancePercentage?.toNumber(),
       grossPerformancePercentWithCurrencyEffect:
@@ -1894,18 +1889,17 @@ export class PortfolioService {
       netPerformanceWithCurrencyEffect
     } = performance;
 
-    const dividendInBaseCurrency =
-      await portfolioCalculator.getDividendInBaseCurrency();
-
     const totalEmergencyFund = this.getTotalEmergencyFund({
       emergencyFundHoldingsValueInBaseCurrency,
       userSettings: user.settings?.settings as UserSettings
     });
 
+    const dateOfFirstActivity = portfolioCalculator.getStartDate();
+
+    const dividendInBaseCurrency =
+      await portfolioCalculator.getDividendInBaseCurrency();
+
     const fees = await portfolioCalculator.getFeesInBaseCurrency();
-
-    const firstOrderDate = portfolioCalculator.getStartDate();
-
     const interest = await portfolioCalculator.getInterestInBaseCurrency();
 
     const liabilities =
@@ -1963,7 +1957,7 @@ export class PortfolioService {
       .minus(liabilities)
       .toNumber();
 
-    const daysInMarket = differenceInDays(new Date(), firstOrderDate);
+    const daysInMarket = differenceInDays(new Date(), dateOfFirstActivity);
 
     const annualizedPerformancePercent = getAnnualizedPerformancePercent({
       daysInMarket,
@@ -1982,6 +1976,7 @@ export class PortfolioService {
       annualizedPerformancePercent,
       annualizedPerformancePercentWithCurrencyEffect,
       cash,
+      dateOfFirstActivity,
       excludedAccountsAndActivities,
       netPerformance,
       netPerformancePercentage,
@@ -1994,7 +1989,6 @@ export class PortfolioService {
       }).length,
       committedFunds: committedFunds.toNumber(),
       currentValueInBaseCurrency: currentValueInBaseCurrency.toNumber(),
-      dateOfFirstActivity: firstOrderDate,
       dividendInBaseCurrency: dividendInBaseCurrency.toNumber(),
       emergencyFund: {
         assets: emergencyFundHoldingsValueInBaseCurrency,

@@ -1,7 +1,6 @@
-import { NotificationService } from '@ghostfolio/client/core/notification/notification.service';
-import { AdminService } from '@ghostfolio/client/services/admin.service';
-import { DataService } from '@ghostfolio/client/services/data.service';
 import { PROPERTY_ACTIVITY_CALLBACK_URL } from '@ghostfolio/common/config';
+import { NotificationService } from '@ghostfolio/ui/notifications';
+import { AdminService, DataService } from '@ghostfolio/ui/services';
 
 import { CommonModule } from '@angular/common';
 import {
