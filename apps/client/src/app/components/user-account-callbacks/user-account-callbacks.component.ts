@@ -1,7 +1,7 @@
 import { UserService } from '@ghostfolio/client/services/user/user.service';
-import { DataService } from '@ghostfolio/ui/services';
 import { User } from '@ghostfolio/common/interfaces';
 import { NotificationService } from '@ghostfolio/ui/notifications';
+import { DataService } from '@ghostfolio/ui/services';
 
 import { CommonModule } from '@angular/common';
 import {
@@ -67,7 +67,6 @@ export class GfUserAccountCallbacksComponent implements OnInit, OnDestroy {
 
     // basic validation using the URL constructor
     try {
-      // eslint-disable-next-line no-new
       new URL(value);
     } catch (e) {
       this.notificationService.alert({
