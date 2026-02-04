@@ -74,6 +74,54 @@ export class OrderService {
     await this.processPendingCallbacks(payload.dataSource, payload.symbol);
   }
 
+  /**
+   * Retrieves all orders required for the portfolio calculator, including both standard asset orders
+   * and optional synthetic orders representing cash activities.
+   */
+  @LogPerformance
+  public async getOrdersForPortfolioCalculator({
+    filters,
+    userCurrency,
+    userId,
+    withCash = false
+  }: {
+    /** Optional filters to apply to the orders. */
+    filters?: Filter[];
+    /** The base currency of the user. */
+    userCurrency: string;
+    /** The ID of the user. */
+    userId: string;
+    /** Whether to include cash activities in the result. */
+    withCash?: boolean;
+  }) {
+    const orders = await this.getOrders({
+      filters,
+      userCurrency,
+      userId,
+      withExcludedAccountsAndActivities: false // TODO
+    });
+
+    if (withCash) {
+      const cashDetails = await this.accountService.getCashDetails({
+        filters,
+        userId,
+        currency: userCurrency
+      });
+
+      const cashOrders = await this.getCashOrders({
+        cashDetails,
+        filters,
+        userCurrency,
+        userId
+      });
+
+      orders.activities.push(...cashOrders.activities);
+      orders.count += cashOrders.count;
+    }
+
+    return orders;
+  }
+
   public async assignTags({
     dataSource,
     symbol,
@@ -282,125 +330,13 @@ export class OrderService {
       this.logger.log(
         `Deferring callback for order ${order.id} until asset data gathered`
       );
-      await this.storePendingCallback(order.id, 'create', {
+      this.storePendingCallback(order.id, 'create', {
         dataSource: order.SymbolProfile.dataSource,
         symbol: order.SymbolProfile.symbol
       });
     }
 
     return order;
-  }
-
-  private async sendActivityCallback(
-    orderId: string,
-    operation: 'create' | 'update' | 'delete'
-  ): Promise<void> {
-    try {
-      // Fetch the full order details with relations
-      const fullOrder = await this.prismaService.order.findUnique({
-        where: { id: orderId },
-        include: { tags: true, SymbolProfile: true }
-      });
-
-      if (!fullOrder) {
-        this.logger.warn(`Order ${orderId} not found for callback`);
-        return;
-      }
-
-      // Get user settings to check for activity callback URL
-      const user = await this.userService.user({ id: fullOrder.userId });
-      const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
-
-      if (!callbackUrl) return;
-
-      let url: URL;
-      try {
-        url = new URL(String(callbackUrl));
-      } catch (err) {
-        this.logger.warn(
-          `Invalid activity callback URL configured: ${String(callbackUrl)}`
-        );
-        return;
-      }
-
-      const params = new URLSearchParams();
-      params.append('id', fullOrder.id);
-      if (fullOrder.userId) params.append('userId', fullOrder.userId);
-      if (fullOrder.accountId) {
-        // Use account name instead of account id in callback
-        const account = await this.accountService.account({
-          id_userId: { userId: fullOrder.userId, id: fullOrder.accountId }
-        });
-        if (account?.name) params.append('accountName', account.name);
-      }
-      if (fullOrder.type) params.append('type', String(fullOrder.type));
-      if (fullOrder.date)
-        params.append('date', (fullOrder.date as Date).toISOString());
-      if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
-        params.append('quantity', String(fullOrder.quantity));
-      if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
-        params.append('unitPrice', String(fullOrder.unitPrice));
-      if (fullOrder.fee !== undefined && fullOrder.fee !== null)
-        params.append('fee', String(fullOrder.fee));
-      if (fullOrder.SymbolProfile?.symbol)
-        params.append('symbol', fullOrder.SymbolProfile.symbol);
-      if (fullOrder.SymbolProfile?.currency)
-        params.append('currency', fullOrder.SymbolProfile.currency);
-      if (fullOrder.SymbolProfile?.name)
-        params.append('assetName', fullOrder.SymbolProfile.name);
-
-      // Include comment (note) if present
-      if (fullOrder.comment) params.append('note', String(fullOrder.comment));
-
-      // Include tags (names and ids) if present
-      if (fullOrder.tags && fullOrder.tags.length > 0) {
-        const tagNames = fullOrder.tags.map((t) => t.name);
-        // Send tags as repeated tags[] parameters so receivers can parse them as an array
-        tagNames.forEach((name: string) => params.append('tags[]', name));
-      }
-
-      // Calculate position percentage
-      if (
-        ['BUY', 'SELL'].includes(fullOrder.type) &&
-        fullOrder.quantity !== undefined &&
-        fullOrder.unitPrice !== undefined
-      ) {
-        const positionPercentage =
-          await this.calculatePositionPercentage(fullOrder);
-        params.append('positionPercentage', positionPercentage);
-      }
-
-      params.append('operation', operation);
-
-      // Merge existing search params if any
-      const existing = url.search ? url.search.substring(1) : '';
-      const combined = [existing, params.toString()]
-        .filter((p) => p && p.length > 0)
-        .join('&');
-      url.search = combined;
-
-      // Perform GET with short timeout. Swallow errors.
-      await axios.get(url.toString(), { timeout: 3000 }).catch((err) => {
-        this.logger.warn(
-          `Activity callback request failed: ${err?.message ?? String(err)}`
-        );
-      });
-    } catch (err) {
-      this.logger.warn(
-        `Activity callback error: ${err?.message ?? String(err)}`
-      );
-    }
-  }
-
-  private async storePendingCallback(
-    orderId: string,
-    operation: 'create' | 'update' | 'delete',
-    assetIdentifier: { dataSource: DataSource; symbol: string }
-  ): Promise<void> {
-    const key = `${assetIdentifier.dataSource}:${assetIdentifier.symbol}`;
-    const callbacks = this.pendingCallbacks.get(key) || [];
-    callbacks.push({ orderId, operation });
-    this.pendingCallbacks.set(key, callbacks);
   }
 
   public async processPendingCallbacks(
@@ -431,91 +367,6 @@ export class OrderService {
 
     // Clear processed callbacks
     this.pendingCallbacks.delete(key);
-  }
-
-  /**
-   * Calculate the percentage change in position value
-   * Returns the percentage as a string: "+100%" for buy, "-50%" for sell, or "---" if no previous position
-   */
-  private async calculatePositionPercentage(order: {
-    userId: string;
-    symbolProfileId: string;
-    date: Date;
-    type: string;
-    quantity: number;
-    unitPrice: number;
-  }): Promise<string> {
-    try {
-      // Calculate the value of the current order
-      const orderValue = new Big(order.quantity).mul(order.unitPrice);
-
-      // Get all previous orders for this symbol (excluding the current one)
-      const previousOrders = await this.prismaService.order.findMany({
-        where: {
-          userId: order.userId,
-          symbolProfileId: order.symbolProfileId,
-          date: {
-            lt: order.date
-          },
-          type: {
-            in: ['BUY', 'SELL']
-          }
-        },
-        orderBy: {
-          date: 'asc'
-        }
-      });
-
-      // Calculate the position value before this order
-      let previousPositionValue = new Big(0);
-      let previousQuantity = new Big(0);
-
-      for (const prevOrder of previousOrders) {
-        const prevOrderValue = new Big(prevOrder.quantity).mul(
-          prevOrder.unitPrice
-        );
-
-        if (prevOrder.type === 'BUY') {
-          previousPositionValue = previousPositionValue.plus(prevOrderValue);
-          previousQuantity = previousQuantity.plus(prevOrder.quantity);
-        } else if (prevOrder.type === 'SELL') {
-          // For sells, calculate the average price and reduce position proportionally
-          const avgPrice =
-            previousQuantity.gt(0) && previousPositionValue.gt(0)
-              ? previousPositionValue.div(previousQuantity)
-              : new Big(0);
-          const sellValue = new Big(prevOrder.quantity).mul(avgPrice);
-          previousPositionValue = previousPositionValue.minus(sellValue);
-          previousQuantity = previousQuantity.minus(prevOrder.quantity);
-
-          // Ensure we don't go negative
-          if (previousPositionValue.lt(0)) previousPositionValue = new Big(0);
-          if (previousQuantity.lt(0)) previousQuantity = new Big(0);
-        }
-      }
-
-      // If there's no previous position, return "---"
-      if (previousPositionValue.eq(0)) {
-        return '---';
-      }
-
-      // Calculate the percentage
-      const percentage = orderValue.div(previousPositionValue).mul(100);
-
-      // Format based on order type
-      if (order.type === 'BUY') {
-        return `+${percentage.toFixed(2)}%`;
-      } else if (order.type === 'SELL') {
-        return `-${percentage.toFixed(2)}%`;
-      }
-
-      return '---';
-    } catch (err) {
-      this.logger.warn(
-        `Error calculating position percentage: ${(err as Error)?.message ?? String(err)}`
-      );
-      return '---';
-    }
   }
 
   public async deleteOrder(
@@ -550,8 +401,8 @@ export class OrderService {
 
         let url: URL;
         try {
-          url = new URL(callbackUrl as string);
-        } catch (err) {
+          url = new URL(String(callbackUrl));
+        } catch (err: unknown) {
           this.logger.warn(
             `Invalid activity callback URL configured: ${String(callbackUrl)}`
           );
@@ -577,8 +428,7 @@ export class OrderService {
           if (account?.name) params.append('accountName', account.name);
         }
         if (fullOrder.type) params.append('type', String(fullOrder.type));
-        if (fullOrder.date)
-          params.append('date', (fullOrder.date as Date).toISOString());
+        if (fullOrder.date) params.append('date', fullOrder.date.toISOString());
         if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
           params.append('quantity', String(fullOrder.quantity));
         if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
@@ -626,15 +476,15 @@ export class OrderService {
         url.search = combined;
 
         // Perform GET with short timeout. Swallow errors.
-        axios.get(url.toString(), { timeout: 3000 }).catch((err) => {
-          this.logger.warn(
-            `Activity callback request failed: ${err?.message ?? String(err)}`
-          );
+        axios.get(url.toString(), { timeout: 3000 }).catch((err: unknown) => {
+          const message =
+            err instanceof Error ? err.message : JSON.stringify(err);
+          this.logger.warn(`Activity callback request failed: ${message}`);
         });
-      } catch (err) {
-        this.logger.warn(
-          `Activity callback error: ${err?.message ?? String(err)}`
-        );
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : JSON.stringify(err);
+        this.logger.warn(`Activity callback error: ${message}`);
       }
     })();
 
@@ -908,7 +758,9 @@ export class OrderService {
             AND: [
               {
                 OR: filtersByAssetClass.map(({ id }) => {
-                  return { assetClass: AssetClass[id] };
+                  return {
+                    assetClass: AssetClass[id as keyof typeof AssetClass]
+                  };
                 })
               },
               {
@@ -922,7 +774,9 @@ export class OrderService {
           {
             SymbolProfileOverrides: {
               OR: filtersByAssetClass.map(({ id }) => {
-                return { assetClass: AssetClass[id] };
+                return {
+                  assetClass: AssetClass[id as keyof typeof AssetClass]
+                };
               })
             }
           }
@@ -1043,7 +897,6 @@ export class OrderService {
               platform: true
             }
           },
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           SymbolProfile: true,
           tags: true
         },
@@ -1129,54 +982,6 @@ export class OrderService {
     return { activities, count };
   }
 
-  /**
-   * Retrieves all orders required for the portfolio calculator, including both standard asset orders
-   * and optional synthetic orders representing cash activities.
-   */
-  @LogPerformance
-  public async getOrdersForPortfolioCalculator({
-    filters,
-    userCurrency,
-    userId,
-    withCash = false
-  }: {
-    /** Optional filters to apply to the orders. */
-    filters?: Filter[];
-    /** The base currency of the user. */
-    userCurrency: string;
-    /** The ID of the user. */
-    userId: string;
-    /** Whether to include cash activities in the result. */
-    withCash?: boolean;
-  }) {
-    const orders = await this.getOrders({
-      filters,
-      userCurrency,
-      userId,
-      withExcludedAccountsAndActivities: false // TODO
-    });
-
-    if (withCash) {
-      const cashDetails = await this.accountService.getCashDetails({
-        filters,
-        userId,
-        currency: userCurrency
-      });
-
-      const cashOrders = await this.getCashOrders({
-        cashDetails,
-        filters,
-        userCurrency,
-        userId
-      });
-
-      orders.activities.push(...cashOrders.activities);
-      orders.count += cashOrders.count;
-    }
-
-    return orders;
-  }
-
   public async getStatisticsByCurrency(
     currency: EnhancedSymbolProfile['currency']
   ): Promise<{
@@ -1251,7 +1056,7 @@ export class OrderService {
 
       if (!isDraft) {
         // Gather symbol data of order in the background, if not draft
-        this.dataGatheringService.gatherSymbols({
+        void this.dataGatheringService.gatherSymbols({
           dataGatheringItems: [
             {
               dataSource:
@@ -1284,7 +1089,7 @@ export class OrderService {
 
         let url: URL;
         try {
-          url = new URL(callbackUrl as string);
+          url = new URL(String(callbackUrl));
         } catch (err) {
           this.logger.warn(
             `Invalid activity callback URL configured: ${String(callbackUrl)}`
@@ -1306,8 +1111,7 @@ export class OrderService {
           if (account?.name) params.append('accountName', account.name);
         }
         if (fullOrder.type) params.append('type', String(fullOrder.type));
-        if (fullOrder.date)
-          params.append('date', (fullOrder.date as Date).toISOString());
+        if (fullOrder.date) params.append('date', fullOrder.date.toISOString());
         if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
           params.append('quantity', String(fullOrder.quantity));
         if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
@@ -1355,15 +1159,15 @@ export class OrderService {
         url.search = combined;
 
         // Perform GET with short timeout. Swallow errors.
-        axios.get(url.toString(), { timeout: 3000 }).catch((err) => {
-          this.logger.warn(
-            `Activity callback request failed: ${err?.message ?? String(err)}`
-          );
+        axios.get(url.toString(), { timeout: 3000 }).catch((err: unknown) => {
+          const message =
+            err instanceof Error ? err.message : JSON.stringify(err);
+          this.logger.warn(`Activity callback request failed: ${message}`);
         });
-      } catch (err) {
-        this.logger.warn(
-          `Activity callback error: ${err?.message ?? String(err)}`
-        );
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : JSON.stringify(err);
+        this.logger.warn(`Activity callback error: ${message}`);
       }
     })();
 
@@ -1394,7 +1198,7 @@ export class OrderService {
 
         let url: URL;
         try {
-          url = new URL(callbackUrl as string);
+          url = new URL(String(callbackUrl));
         } catch (err) {
           this.logger.warn(
             `Invalid activity callback URL configured: ${String(callbackUrl)}`
@@ -1423,8 +1227,7 @@ export class OrderService {
           if (account?.name) params.append('accountName', account.name);
         }
         if (fullOrder.type) params.append('type', String(fullOrder.type));
-        if (fullOrder.date)
-          params.append('date', (fullOrder.date as Date).toISOString());
+        if (fullOrder.date) params.append('date', fullOrder.date.toISOString());
         if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
           params.append('quantity', String(fullOrder.quantity));
         if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
@@ -1469,15 +1272,15 @@ export class OrderService {
         url.search = combined;
 
         // Perform GET with short timeout. Swallow errors.
-        axios.get(url.toString(), { timeout: 3000 }).catch((err) => {
-          this.logger.warn(
-            `Activity callback request failed: ${err?.message ?? String(err)}`
-          );
+        axios.get(url.toString(), { timeout: 3000 }).catch((err: unknown) => {
+          const message =
+            err instanceof Error ? err.message : JSON.stringify(err);
+          this.logger.warn(`Activity callback request failed: ${message}`);
         });
-      } catch (err) {
-        this.logger.warn(
-          `Activity callback error: ${err?.message ?? String(err)}`
-        );
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : JSON.stringify(err);
+        this.logger.warn(`Activity callback error: ${message}`);
       }
     })();
 
@@ -1489,6 +1292,203 @@ export class OrderService {
     );
 
     return order;
+  }
+
+  private async sendActivityCallback(
+    orderId: string,
+    operation: 'create' | 'update' | 'delete'
+  ): Promise<void> {
+    try {
+      // Fetch the full order details with relations
+      const fullOrder = await this.prismaService.order.findUnique({
+        where: { id: orderId },
+        include: { tags: true, SymbolProfile: true }
+      });
+
+      if (!fullOrder) {
+        this.logger.warn(`Order ${orderId} not found for callback`);
+        return;
+      }
+
+      // Get user settings to check for activity callback URL
+      const user = await this.userService.user({ id: fullOrder.userId });
+      const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
+
+      if (!callbackUrl) return;
+
+      let url: URL;
+      try {
+        url = new URL(String(callbackUrl));
+      } catch (err) {
+        this.logger.warn(
+          `Invalid activity callback URL configured: ${String(callbackUrl)}`
+        );
+        return;
+      }
+
+      const params = new URLSearchParams();
+      params.append('id', fullOrder.id);
+      if (fullOrder.userId) params.append('userId', fullOrder.userId);
+      if (fullOrder.accountId) {
+        // Use account name instead of account id in callback
+        const account = await this.accountService.account({
+          id_userId: { userId: fullOrder.userId, id: fullOrder.accountId }
+        });
+        if (account?.name) params.append('accountName', account.name);
+      }
+      if (fullOrder.type) params.append('type', String(fullOrder.type));
+      if (fullOrder.date) params.append('date', fullOrder.date.toISOString());
+      if (fullOrder.quantity !== undefined && fullOrder.quantity !== null)
+        params.append('quantity', String(fullOrder.quantity));
+      if (fullOrder.unitPrice !== undefined && fullOrder.unitPrice !== null)
+        params.append('unitPrice', String(fullOrder.unitPrice));
+      if (fullOrder.fee !== undefined && fullOrder.fee !== null)
+        params.append('fee', String(fullOrder.fee));
+      if (fullOrder.SymbolProfile?.symbol)
+        params.append('symbol', fullOrder.SymbolProfile.symbol);
+      if (fullOrder.SymbolProfile?.currency)
+        params.append('currency', fullOrder.SymbolProfile.currency);
+      if (fullOrder.SymbolProfile?.name)
+        params.append('assetName', fullOrder.SymbolProfile.name);
+
+      // Include comment (note) if present
+      if (fullOrder.comment) params.append('note', String(fullOrder.comment));
+
+      // Include tags (names and ids) if present
+      if (fullOrder.tags && fullOrder.tags.length > 0) {
+        const tagNames = fullOrder.tags.map((t) => t.name);
+        // Send tags as repeated tags[] parameters so receivers can parse them as an array
+        tagNames.forEach((name: string) => params.append('tags[]', name));
+      }
+
+      // Calculate position percentage
+      if (
+        ['BUY', 'SELL'].includes(fullOrder.type) &&
+        fullOrder.quantity !== undefined &&
+        fullOrder.unitPrice !== undefined
+      ) {
+        const positionPercentage =
+          await this.calculatePositionPercentage(fullOrder);
+        params.append('positionPercentage', positionPercentage);
+      }
+
+      params.append('operation', operation);
+
+      // Merge existing search params if any
+      const existing = url.search ? url.search.substring(1) : '';
+      const combined = [existing, params.toString()]
+        .filter((p) => p && p.length > 0)
+        .join('&');
+      url.search = combined;
+
+      // Perform GET with short timeout. Swallow errors.
+      await axios
+        .get(url.toString(), { timeout: 3000 })
+        .catch((err: unknown) => {
+          const message =
+            err instanceof Error ? err.message : JSON.stringify(err);
+          this.logger.warn(`Activity callback request failed: ${message}`);
+        });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : JSON.stringify(err);
+      this.logger.warn(`Activity callback error: ${message}`);
+    }
+  }
+
+  private storePendingCallback(
+    orderId: string,
+    operation: 'create' | 'update' | 'delete',
+    assetIdentifier: { dataSource: DataSource; symbol: string }
+  ): void {
+    const key = `${assetIdentifier.dataSource}:${assetIdentifier.symbol}`;
+    const callbacks = this.pendingCallbacks.get(key) || [];
+    callbacks.push({ orderId, operation });
+    this.pendingCallbacks.set(key, callbacks);
+  }
+
+  /**
+   * Calculate the percentage change in position value
+   * Returns the percentage as a string: "+100%" for buy, "-50%" for sell, or "---" if no previous position
+   */
+  private async calculatePositionPercentage(order: {
+    userId: string;
+    symbolProfileId: string;
+    date: Date;
+    type: string;
+    quantity: number;
+    unitPrice: number;
+  }): Promise<string> {
+    try {
+      // Calculate the value of the current order
+      const orderValue = new Big(order.quantity).mul(order.unitPrice);
+
+      // Get all previous orders for this symbol (excluding the current one)
+      const previousOrders = await this.prismaService.order.findMany({
+        where: {
+          userId: order.userId,
+          symbolProfileId: order.symbolProfileId,
+          date: {
+            lt: order.date
+          },
+          type: {
+            in: ['BUY', 'SELL']
+          }
+        },
+        orderBy: {
+          date: 'asc'
+        }
+      });
+
+      // Calculate the position value before this order
+      let previousPositionValue = new Big(0);
+      let previousQuantity = new Big(0);
+
+      for (const prevOrder of previousOrders) {
+        const prevOrderValue = new Big(prevOrder.quantity).mul(
+          prevOrder.unitPrice
+        );
+
+        if (prevOrder.type === 'BUY') {
+          previousPositionValue = previousPositionValue.plus(prevOrderValue);
+          previousQuantity = previousQuantity.plus(prevOrder.quantity);
+        } else if (prevOrder.type === 'SELL') {
+          // For sells, calculate the average price and reduce position proportionally
+          const avgPrice =
+            previousQuantity.gt(0) && previousPositionValue.gt(0)
+              ? previousPositionValue.div(previousQuantity)
+              : new Big(0);
+          const sellValue = new Big(prevOrder.quantity).mul(avgPrice);
+          previousPositionValue = previousPositionValue.minus(sellValue);
+          previousQuantity = previousQuantity.minus(prevOrder.quantity);
+
+          // Ensure we don't go negative
+          if (previousPositionValue.lt(0)) previousPositionValue = new Big(0);
+          if (previousQuantity.lt(0)) previousQuantity = new Big(0);
+        }
+      }
+
+      // If there's no previous position, return "---"
+      if (previousPositionValue.eq(0)) {
+        return '---';
+      }
+
+      // Calculate the percentage
+      const percentage = orderValue.div(previousPositionValue).mul(100);
+
+      // Format based on order type
+      if (order.type === 'BUY') {
+        return `+${percentage.toFixed(2)}%`;
+      } else if (order.type === 'SELL') {
+        return `-${percentage.toFixed(2)}%`;
+      }
+
+      return '---';
+    } catch (err) {
+      this.logger.warn(
+        `Error calculating position percentage: ${(err as Error)?.message ?? String(err)}`
+      );
+      return '---';
+    }
   }
 
   private async orders(params: {
