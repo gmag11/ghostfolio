@@ -183,7 +183,7 @@ export class OrderService {
     }
 
     if (data.SymbolProfile.connectOrCreate.create.dataSource !== 'MANUAL') {
-      this.dataGatheringService.addJobToQueue({
+      void this.dataGatheringService.addJobToQueue({
         data: {
           dataSource: data.SymbolProfile.connectOrCreate.create.dataSource,
           symbol: data.SymbolProfile.connectOrCreate.create.symbol
@@ -297,10 +297,10 @@ export class OrderService {
   ): Promise<void> {
     try {
       // Fetch the full order details with relations
-      const fullOrder = (await this.prismaService.order.findUnique({
+      const fullOrder = await this.prismaService.order.findUnique({
         where: { id: orderId },
         include: { tags: true, SymbolProfile: true }
-      })) as any;
+      });
 
       if (!fullOrder) {
         this.logger.warn(`Order ${orderId} not found for callback`);
@@ -315,7 +315,7 @@ export class OrderService {
 
       let url: URL;
       try {
-        url = new URL(callbackUrl as string);
+        url = new URL(String(callbackUrl));
       } catch (err) {
         this.logger.warn(
           `Invalid activity callback URL configured: ${String(callbackUrl)}`
@@ -357,6 +357,17 @@ export class OrderService {
         const tagNames = fullOrder.tags.map((t) => t.name);
         // Send tags as repeated tags[] parameters so receivers can parse them as an array
         tagNames.forEach((name: string) => params.append('tags[]', name));
+      }
+
+      // Calculate position percentage
+      if (
+        ['BUY', 'SELL'].includes(fullOrder.type) &&
+        fullOrder.quantity !== undefined &&
+        fullOrder.unitPrice !== undefined
+      ) {
+        const positionPercentage =
+          await this.calculatePositionPercentage(fullOrder);
+        params.append('positionPercentage', positionPercentage);
       }
 
       params.append('operation', operation);
@@ -422,6 +433,91 @@ export class OrderService {
     this.pendingCallbacks.delete(key);
   }
 
+  /**
+   * Calculate the percentage change in position value
+   * Returns the percentage as a string: "+100%" for buy, "-50%" for sell, or "---" if no previous position
+   */
+  private async calculatePositionPercentage(order: {
+    userId: string;
+    symbolProfileId: string;
+    date: Date;
+    type: string;
+    quantity: number;
+    unitPrice: number;
+  }): Promise<string> {
+    try {
+      // Calculate the value of the current order
+      const orderValue = new Big(order.quantity).mul(order.unitPrice);
+
+      // Get all previous orders for this symbol (excluding the current one)
+      const previousOrders = await this.prismaService.order.findMany({
+        where: {
+          userId: order.userId,
+          symbolProfileId: order.symbolProfileId,
+          date: {
+            lt: order.date
+          },
+          type: {
+            in: ['BUY', 'SELL']
+          }
+        },
+        orderBy: {
+          date: 'asc'
+        }
+      });
+
+      // Calculate the position value before this order
+      let previousPositionValue = new Big(0);
+      let previousQuantity = new Big(0);
+
+      for (const prevOrder of previousOrders) {
+        const prevOrderValue = new Big(prevOrder.quantity).mul(
+          prevOrder.unitPrice
+        );
+
+        if (prevOrder.type === 'BUY') {
+          previousPositionValue = previousPositionValue.plus(prevOrderValue);
+          previousQuantity = previousQuantity.plus(prevOrder.quantity);
+        } else if (prevOrder.type === 'SELL') {
+          // For sells, calculate the average price and reduce position proportionally
+          const avgPrice =
+            previousQuantity.gt(0) && previousPositionValue.gt(0)
+              ? previousPositionValue.div(previousQuantity)
+              : new Big(0);
+          const sellValue = new Big(prevOrder.quantity).mul(avgPrice);
+          previousPositionValue = previousPositionValue.minus(sellValue);
+          previousQuantity = previousQuantity.minus(prevOrder.quantity);
+
+          // Ensure we don't go negative
+          if (previousPositionValue.lt(0)) previousPositionValue = new Big(0);
+          if (previousQuantity.lt(0)) previousQuantity = new Big(0);
+        }
+      }
+
+      // If there's no previous position, return "---"
+      if (previousPositionValue.eq(0)) {
+        return '---';
+      }
+
+      // Calculate the percentage
+      const percentage = orderValue.div(previousPositionValue).mul(100);
+
+      // Format based on order type
+      if (order.type === 'BUY') {
+        return `+${percentage.toFixed(2)}%`;
+      } else if (order.type === 'SELL') {
+        return `-${percentage.toFixed(2)}%`;
+      }
+
+      return '---';
+    } catch (err) {
+      this.logger.warn(
+        `Error calculating position percentage: ${(err as Error)?.message ?? String(err)}`
+      );
+      return '---';
+    }
+  }
+
   public async deleteOrder(
     where: Prisma.OrderWhereUniqueInput
   ): Promise<Order> {
@@ -445,7 +541,7 @@ export class OrderService {
     }
 
     // Fire-and-forget: call activity callback URL if configured. Do not block or throw.
-    (async () => {
+    void (async () => {
       try {
         // Get user settings to check for activity callback URL
         const user = await this.userService.user({ id: order.userId });
@@ -463,7 +559,12 @@ export class OrderService {
         }
 
         // Use the pre-fetched full order details (since the order was already deleted)
-        const fullOrder = (fullOrderForCallback ?? order) as any;
+        // fullOrderForCallback always has tags and SymbolProfile, but order might not
+        const fullOrder = fullOrderForCallback ?? {
+          ...order,
+          tags: [],
+          SymbolProfile: null
+        };
 
         const params = new URLSearchParams();
         params.append('id', fullOrder.id);
@@ -504,6 +605,17 @@ export class OrderService {
           // Also send tag ids for convenience
           const tagIds = fullOrder.tags.map((t) => t.id);
           tagIds.forEach((id: string) => params.append('tagIds[]', id));
+        }
+
+        // Calculate position percentage
+        if (
+          ['BUY', 'SELL'].includes(fullOrder.type) &&
+          fullOrder.quantity !== undefined &&
+          fullOrder.unitPrice !== undefined
+        ) {
+          const positionPercentage =
+            await this.calculatePositionPercentage(fullOrder);
+          params.append('positionPercentage', positionPercentage);
         }
 
         // Merge existing search params if any
@@ -1159,7 +1271,7 @@ export class OrderService {
     delete data.tags;
 
     // Fire-and-forget: call activity callback URL for DELETION with old data before update. Do not block or throw.
-    (async () => {
+    void (async () => {
       if (!fullOrderBeforeUpdate) return;
 
       try {
@@ -1181,7 +1293,7 @@ export class OrderService {
         }
 
         // Use the pre-update order data for the deletion callback
-        const fullOrder = fullOrderBeforeUpdate as any;
+        const fullOrder = fullOrderBeforeUpdate;
 
         const params = new URLSearchParams();
         params.append('id', fullOrder.id);
@@ -1220,6 +1332,17 @@ export class OrderService {
           // Also send tag ids for convenience
           const tagIds = fullOrder.tags.map((t) => t.id);
           tagIds.forEach((id: string) => params.append('tagIds[]', id));
+        }
+
+        // Calculate position percentage
+        if (
+          ['BUY', 'SELL'].includes(fullOrder.type) &&
+          fullOrder.quantity !== undefined &&
+          fullOrder.unitPrice !== undefined
+        ) {
+          const positionPercentage =
+            await this.calculatePositionPercentage(fullOrder);
+          params.append('positionPercentage', positionPercentage);
         }
 
         params.append('operation', 'delete');
@@ -1262,7 +1385,7 @@ export class OrderService {
     });
 
     // Fire-and-forget: call activity callback URL for CREATION with new data after update. Do not block or throw.
-    (async () => {
+    void (async () => {
       try {
         // Get user settings to check for activity callback URL
         const user = await this.userService.user({ id: order.userId });
@@ -1280,10 +1403,14 @@ export class OrderService {
         }
 
         // Ensure we have comment and tags by fetching the full order relations
-        const fullOrder = ((await this.prismaService.order.findUnique({
+        const fullOrder = (await this.prismaService.order.findUnique({
           where: { id: order.id },
           include: { tags: true, SymbolProfile: true }
-        })) ?? order) as any;
+        })) ?? {
+          ...order,
+          tags: [],
+          SymbolProfile: null
+        };
 
         const params = new URLSearchParams();
         params.append('id', fullOrder.id);
@@ -1319,6 +1446,17 @@ export class OrderService {
           const tagNames = fullOrder.tags.map((t) => t.name);
           // Send tags as repeated tags[] parameters so receivers can parse them as an array
           tagNames.forEach((name: string) => params.append('tags[]', name));
+        }
+
+        // Calculate position percentage
+        if (
+          ['BUY', 'SELL'].includes(fullOrder.type) &&
+          fullOrder.quantity !== undefined &&
+          fullOrder.unitPrice !== undefined
+        ) {
+          const positionPercentage =
+            await this.calculatePositionPercentage(fullOrder);
+          params.append('positionPercentage', positionPercentage);
         }
 
         params.append('operation', 'create');
