@@ -132,6 +132,11 @@ describe('PortfolioCalculator', () => {
         groupBy: 'month'
       });
 
+      const investmentsByYear = portfolioCalculator.getInvestmentsByGroup({
+        data: portfolioSnapshot.historicalData,
+        groupBy: 'year'
+      });
+
       expect(portfolioSnapshot.historicalData[0]).toEqual({
         date: '2021-12-11',
         investmentValueWithCurrencyEffect: 0,
@@ -190,14 +195,15 @@ describe('PortfolioCalculator', () => {
         hasErrors: false,
         positions: [
           {
+            activitiesCount: 1,
             averagePrice: new Big('44558.42'),
             currency: 'USD',
             dataSource: 'YAHOO',
+            dateOfFirstActivity: '2021-12-12',
             dividend: new Big('0'),
             dividendInBaseCurrency: new Big('0'),
             fee: new Big('4.46'),
             feeInBaseCurrency: new Big('4.46'),
-            firstBuyDate: '2021-12-12',
             grossPerformance: new Big('-1458.72'),
             grossPerformancePercentage: new Big('-0.03273724696701543726'),
             grossPerformancePercentageWithCurrencyEffect: new Big(
@@ -243,6 +249,11 @@ describe('PortfolioCalculator', () => {
 
       expect(investmentsByMonth).toEqual([
         { date: '2021-12-01', investment: 44558.42 },
+        { date: '2022-01-01', investment: 0 }
+      ]);
+
+      expect(investmentsByYear).toEqual([
+        { date: '2021-01-01', investment: 44558.42 },
         { date: '2022-01-01', investment: 0 }
       ]);
     });

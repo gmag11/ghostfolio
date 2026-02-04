@@ -1,5 +1,8 @@
-import { redactAttributes } from '@ghostfolio/api/helper/object.helper';
-import { HEADER_KEY_IMPERSONATION } from '@ghostfolio/common/config';
+import { redactPaths } from '@ghostfolio/api/helper/object.helper';
+import {
+  DEFAULT_REDACTED_PATHS,
+  HEADER_KEY_IMPERSONATION
+} from '@ghostfolio/common/config';
 import {
   hasReadRestrictedOnlyAccessPermission,
   isRestrictedView
@@ -18,62 +21,32 @@ import { map } from 'rxjs/operators';
 @Injectable()
 export class RedactValuesInResponseInterceptor<T> implements NestInterceptor<
   T,
-  any
+  T
 > {
   public intercept(
     context: ExecutionContext,
     next: CallHandler<T>
-  ): Observable<any> {
+  ): Observable<T> {
     return next.handle().pipe(
-      map((data: any) => {
+      map((data: T) => {
         const { headers, user }: { headers: Headers; user: UserWithSettings } =
           context.switchToHttp().getRequest();
 
-        const impersonationId =
-          headers?.[HEADER_KEY_IMPERSONATION.toLowerCase()];
+        const impersonationId: string | undefined = headers?.[
+          HEADER_KEY_IMPERSONATION.toLowerCase()
+        ] as string | undefined;
 
-        const shouldRedact =
+        const shouldRedact: boolean =
           hasReadRestrictedOnlyAccessPermission({
             impersonationId,
             user
           }) || isRestrictedView(user);
 
         if (shouldRedact) {
-          data = redactAttributes({
+          return redactPaths({
             object: data,
-            options: [
-              'balance',
-              'balanceInBaseCurrency',
-              'comment',
-              'convertedBalance',
-              'dividendInBaseCurrency',
-              'fee',
-              'feeInBaseCurrency',
-              'grossPerformance',
-              'grossPerformanceWithCurrencyEffect',
-              'interestInBaseCurrency',
-              'investment',
-              'netPerformance',
-              'netPerformanceWithCurrencyEffect',
-              'quantity',
-              'symbolMapping',
-              'totalBalanceInBaseCurrency',
-              'totalDividendInBaseCurrency',
-              'totalInterestInBaseCurrency',
-              'totalValueInBaseCurrency',
-              'unitPrice',
-              'unitPriceInAssetProfileCurrency',
-              'value',
-              'valueInBaseCurrency'
-            ].map((attribute) => {
-              return {
-                attribute,
-                valueMap: {
-                  '*': null
-                }
-              };
-            })
-          });
+            paths: DEFAULT_REDACTED_PATHS
+          }) as T;
         }
 
         return data;

@@ -230,14 +230,15 @@ describe('PortfolioCalculator', () => {
        * Value in base currency: 2000 USD * 0.91 = 1820 CHF
        */
       expect(position).toMatchObject<TimelinePosition>({
+        activitiesCount: 2,
         averagePrice: new Big(1),
         currency: 'USD',
         dataSource: DataSource.YAHOO,
+        dateOfFirstActivity: '2023-12-31',
         dividend: new Big(0),
         dividendInBaseCurrency: new Big(0),
         fee: new Big(0),
         feeInBaseCurrency: new Big(0),
-        firstBuyDate: '2023-12-31',
         grossPerformance: new Big(0),
         grossPerformancePercentage: new Big(0),
         grossPerformancePercentageWithCurrencyEffect: new Big(

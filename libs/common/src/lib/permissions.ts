@@ -199,10 +199,10 @@ export function hasReadRestrictedAccessPermission({
   });
 
   return (
-    (access?.permissions?.includes(AccessPermission.READ_RESTRICTED) ||
-      access?.permissions?.includes(
-        'READ_RESTRICTED_EXTENDED' as AccessPermission
-      )) ??
+    access?.permissions?.includes(AccessPermission.READ_RESTRICTED) ??
+    access?.permissions?.includes(
+      'READ_RESTRICTED_EXTENDED' as AccessPermission
+    ) ??
     true
   );
 }

@@ -199,9 +199,9 @@ export class PortfolioService {
 
     return Promise.all(
       accounts.map(async (account) => {
+        let activitiesCount = 0;
         let dividendInBaseCurrency = 0;
         let interestInBaseCurrency = 0;
-        let transactionCount = 0;
 
         for (const {
           currency,
@@ -234,7 +234,7 @@ export class PortfolioService {
           }
 
           if (!isDraft) {
-            transactionCount += 1;
+            activitiesCount += 1;
           }
         }
 
@@ -243,9 +243,9 @@ export class PortfolioService {
 
         const result = {
           ...account,
+          activitiesCount,
           dividendInBaseCurrency,
           interestInBaseCurrency,
-          transactionCount,
           valueInBaseCurrency,
           allocationInPercentage: 0,
           balanceInBaseCurrency: this.exchangeRateDataService.toCurrency(
@@ -253,6 +253,7 @@ export class PortfolioService {
             account.currency,
             userCurrency
           ),
+          transactionCount: activitiesCount,
           value: this.exchangeRateDataService.toCurrency(
             valueInBaseCurrency,
             userCurrency,
@@ -282,6 +283,8 @@ export class PortfolioService {
       withExcludedAccounts
     });
 
+    let activitiesCount = 0;
+
     const searchQuery = filters.find(({ type }) => {
       return type === 'SEARCH_QUERY';
     })?.id;
@@ -304,6 +307,8 @@ export class PortfolioService {
     let transactionCount = 0;
 
     for (const account of accounts) {
+      activitiesCount += account.activitiesCount;
+
       totalBalanceInBaseCurrency = totalBalanceInBaseCurrency.plus(
         account.balanceInBaseCurrency
       );
@@ -316,6 +321,7 @@ export class PortfolioService {
       totalValueInBaseCurrency = totalValueInBaseCurrency.plus(
         account.valueInBaseCurrency
       );
+
       transactionCount += account.transactionCount;
     }
 
@@ -330,6 +336,7 @@ export class PortfolioService {
 
     return {
       accounts,
+      activitiesCount,
       transactionCount,
       totalBalanceInBaseCurrency: totalBalanceInBaseCurrency.toNumber(),
       totalDividendInBaseCurrency: totalDividendInBaseCurrency.toNumber(),
@@ -338,13 +345,13 @@ export class PortfolioService {
     };
   }
 
-  public async getDividends({
+  public getDividends({
     activities,
     groupBy
   }: {
     activities: Activity[];
     groupBy?: GroupBy;
-  }): Promise<InvestmentItem[]> {
+  }): InvestmentItem[] {
     let dividends = activities.map(({ currency, date, value }) => {
       return {
         date: format(date, DATE_FORMAT),
@@ -587,10 +594,11 @@ export class PortfolioService {
     }
 
     for (const {
+      activitiesCount,
       averagePrice,
       currency,
+      dateOfFirstActivity,
       dividend,
-      firstBuyDate,
       grossPerformance,
       grossPerformanceWithCurrencyEffect,
       grossPerformancePercentage,
@@ -631,6 +639,7 @@ export class PortfolioService {
       }
 
       holdings[symbol] = {
+        activitiesCount,
         currency,
         markets,
         marketsAdvanced,
@@ -646,7 +655,7 @@ export class PortfolioService {
         averagePrice: averagePrice?.toNumber(),
         countries: assetProfile.countries,
         dataSource: assetProfile.dataSource,
-        dateOfFirstActivity: parseDate(firstBuyDate),
+        dateOfFirstActivity: parseDate(dateOfFirstActivity),
         dividend: dividend?.toNumber() ?? 0,
         grossPerformance: grossPerformance?.toNumber() ?? 0,
         grossPerformancePercent: grossPerformancePercentage?.toNumber() ?? 0,
@@ -811,11 +820,12 @@ export class PortfolioService {
     }
 
     const {
+      activitiesCount,
       averagePrice,
       currency,
+      dateOfFirstActivity,
       dividendInBaseCurrency,
       feeInBaseCurrency,
-      firstBuyDate,
       grossPerformance,
       grossPerformancePercentage,
       grossPerformancePercentageWithCurrencyEffect,
@@ -829,8 +839,7 @@ export class PortfolioService {
       quantity,
       tags,
       timeWeightedInvestment,
-      timeWeightedInvestmentWithCurrencyEffect,
-      transactionCount
+      timeWeightedInvestmentWithCurrencyEffect
     } = holding;
 
     const activitiesOfHolding = activities.filter(({ SymbolProfile }) => {
@@ -841,7 +850,10 @@ export class PortfolioService {
     });
 
     const dividendYieldPercent = getAnnualizedPerformancePercent({
-      daysInMarket: differenceInDays(new Date(), parseDate(firstBuyDate)),
+      daysInMarket: differenceInDays(
+        new Date(),
+        parseDate(dateOfFirstActivity)
+      ),
       netPerformancePercentage: timeWeightedInvestment.eq(0)
         ? new Big(0)
         : dividendInBaseCurrency.div(timeWeightedInvestment)
@@ -849,7 +861,10 @@ export class PortfolioService {
 
     const dividendYieldPercentWithCurrencyEffect =
       getAnnualizedPerformancePercent({
-        daysInMarket: differenceInDays(new Date(), parseDate(firstBuyDate)),
+        daysInMarket: differenceInDays(
+          new Date(),
+          parseDate(dateOfFirstActivity)
+        ),
         netPerformancePercentage: timeWeightedInvestmentWithCurrencyEffect.eq(0)
           ? new Big(0)
           : dividendInBaseCurrency.div(timeWeightedInvestmentWithCurrencyEffect)
@@ -858,7 +873,7 @@ export class PortfolioService {
     const historicalData = await this.dataProviderService.getHistorical(
       [{ dataSource, symbol }],
       'day',
-      parseISO(firstBuyDate),
+      parseISO(dateOfFirstActivity),
       new Date()
     );
 
@@ -923,7 +938,7 @@ export class PortfolioService {
       // Add historical entry for buy date, if no historical data available
       historicalDataArray.push({
         averagePrice: activitiesOfHolding[0].unitPriceInAssetProfileCurrency,
-        date: firstBuyDate,
+        date: dateOfFirstActivity,
         marketPrice: activitiesOfHolding[0].unitPriceInAssetProfileCurrency,
         quantity: activitiesOfHolding[0].quantity
       });
@@ -936,15 +951,15 @@ export class PortfolioService {
       );
 
     return {
+      activitiesCount,
+      dateOfFirstActivity,
       marketPrice,
       marketPriceMax,
       marketPriceMin,
       SymbolProfile,
       tags,
-      activitiesCount: transactionCount,
       averagePrice: averagePrice.toNumber(),
       dataProviderInfo: portfolioCalculator.getDataProviderInfos()?.[0],
-      dateOfFirstActivity: firstBuyDate,
       dividendInBaseCurrency: dividendInBaseCurrency.toNumber(),
       dividendYieldPercent: dividendYieldPercent.toNumber(),
       dividendYieldPercentWithCurrencyEffect:
@@ -1679,6 +1694,7 @@ export class PortfolioService {
   }): PortfolioPosition {
     return {
       currency,
+      activitiesCount: 0,
       allocationInPercentage: 0,
       assetClass: AssetClass.LIQUIDITY,
       assetSubClass: AssetSubClass.CASH,
