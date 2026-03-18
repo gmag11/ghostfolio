@@ -1,5 +1,4 @@
 import { GfAccessTableComponent } from '@ghostfolio/client/components/access-table/access-table.component';
-import { TokenStorageService } from '@ghostfolio/client/services/token-storage.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { CreateAccessDto } from '@ghostfolio/common/dtos';
 import { ConfirmationDialogType } from '@ghostfolio/common/enums';
@@ -85,7 +84,6 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
     private notificationService: NotificationService,
     private route: ActivatedRoute,
     private router: Router,
-    private tokenStorageService: TokenStorageService,
     private userService: UserService
   ) {
     this.info = this.dataService.fetchInfo();
@@ -171,8 +169,7 @@ export class GfUserAccountAccessComponent implements OnDestroy, OnInit {
           .subscribe(({ accessToken }) => {
             this.notificationService.alert({
               discardFn: () => {
-                this.tokenStorageService.signOut();
-                this.userService.remove();
+                this.userService.signOut();
 
                 document.location.href = `/${document.documentElement.lang}`;
               },

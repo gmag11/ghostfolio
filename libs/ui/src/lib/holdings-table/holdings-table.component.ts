@@ -9,12 +9,11 @@ import {
   CUSTOM_ELEMENTS_SCHEMA,
   ChangeDetectionStrategy,
   Component,
-  EventEmitter,
-  Input,
-  Output,
   computed,
   effect,
   input,
+  model,
+  output,
   viewChild
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -47,10 +46,6 @@ import { GfValueComponent } from '../value/value.component';
   templateUrl: './holdings-table.component.html'
 })
 export class GfHoldingsTableComponent {
-  @Input() pageSize = Number.MAX_SAFE_INTEGER;
-
-  @Output() holdingClicked = new EventEmitter<AssetProfileIdentifier>();
-
   public readonly baseCurrency = input<string>();
   public readonly deviceType = input<string>();
   public readonly hasPermissionToOpenDetails = input(true);
@@ -60,8 +55,12 @@ export class GfHoldingsTableComponent {
   public readonly holdings = input.required<PortfolioPosition[]>();
   public readonly isClosedHoldings = input(false);
   public readonly locale = input(getLocale());
-  public readonly paginator = viewChild.required(MatPaginator);
-  public readonly sort = viewChild.required(MatSort);
+  public readonly pageSize = model(Number.MAX_SAFE_INTEGER);
+
+  public readonly holdingClicked = output<AssetProfileIdentifier>();
+
+  protected readonly paginator = viewChild.required(MatPaginator);
+  protected readonly sort = viewChild.required(MatSort);
 
   protected readonly dataSource = new MatTableDataSource<PortfolioPosition>([]);
 
@@ -120,7 +119,7 @@ export class GfHoldingsTableComponent {
   protected canShowDetails(holding: PortfolioPosition): boolean {
     return (
       this.hasPermissionToOpenDetails() &&
-      !this.ignoreAssetSubClasses.includes(holding.assetSubClass)
+      !this.ignoreAssetSubClasses.includes(holding.assetProfile.assetSubClass)
     );
   }
 
@@ -132,7 +131,7 @@ export class GfHoldingsTableComponent {
   }
 
   protected onShowAllHoldings() {
-    this.pageSize = Number.MAX_SAFE_INTEGER;
+    this.pageSize.set(Number.MAX_SAFE_INTEGER);
 
     setTimeout(() => {
       this.dataSource.paginator = this.paginator();

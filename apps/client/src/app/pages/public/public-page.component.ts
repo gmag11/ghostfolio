@@ -19,8 +19,10 @@ import {
   ChangeDetectorRef,
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
+  DestroyRef,
   OnInit
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { PageEvent } from '@angular/material/paginator';
@@ -30,8 +32,8 @@ import { AssetClass } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { isNumber } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
-import { EMPTY, Subject } from 'rxjs';
-import { catchError, takeUntil } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   host: { class: 'page' },
@@ -84,19 +86,21 @@ export class GfPublicPageComponent implements OnInit {
     [name: string]: { name: string; symbol: string; value: number };
   };
   public UNKNOWN_KEY = UNKNOWN_KEY;
+  public readonly activitiesPageSize = 10;
+  public readonly holdingsPageSize = 10;
 
   private accessId: string;
-  private unsubscribeSubject = new Subject<void>();
 
   public constructor(
     private activatedRoute: ActivatedRoute,
     private changeDetectorRef: ChangeDetectorRef,
     private dataService: DataService,
+    private destroyRef: DestroyRef,
     private deviceService: DeviceDetectorService,
     private router: Router
   ) {
     this.activatedRoute.params.subscribe((params) => {
-      this.accessId = params['id'];
+      this.accessId = params['id'] as string;
     });
 
     this.info = this.dataService.fetchInfo();
@@ -106,34 +110,6 @@ export class GfPublicPageComponent implements OnInit {
       permissions.enableSubscription
     );
   }
-
-  public ngOnInit() {
-    this.deviceType = this.deviceService.getDeviceInfo().deviceType;
-
-    this.dataService
-      .fetchPublicPortfolio(this.accessId)
-      .pipe(
-        takeUntil(this.unsubscribeSubject),
-        catchError((error) => {
-          if (error.status === StatusCodes.NOT_FOUND) {
-            console.error(error);
-            this.router.navigate(['/']);
-          }
-
-          return EMPTY;
-        })
-      )
-      .subscribe((portfolioPublicDetails) => {
-        this.publicPortfolioDetails = portfolioPublicDetails;
-
-        this.initializeAnalysisData();
-        this.initializeActivitiesData();
-
-        this.changeDetectorRef.markForCheck();
-      });
-  }
-
-  public readonly activitiesPageSize = 10;
 
   public get isExtendedView(): boolean {
     return !!this.publicPortfolioDetails?.summary;
@@ -149,7 +125,33 @@ export class GfPublicPageComponent implements OnInit {
     );
   }
 
-  public readonly holdingsPageSize = 10;
+  public ngOnInit() {
+    this.deviceType = this.deviceService.getDeviceInfo().deviceType;
+
+    this.dataService
+      .fetchPublicPortfolio(this.accessId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        catchError((error) => {
+          if (
+            (error as { status: StatusCodes }).status === StatusCodes.NOT_FOUND
+          ) {
+            console.error(error);
+            void this.router.navigate(['/']);
+          }
+
+          return EMPTY;
+        })
+      )
+      .subscribe((portfolioPublicDetails) => {
+        this.publicPortfolioDetails = portfolioPublicDetails;
+
+        this.initializeAnalysisData();
+        this.initializeActivitiesData();
+
+        this.changeDetectorRef.markForCheck();
+      });
+  }
 
   public initializeAnalysisData() {
     this.continents = {
@@ -288,10 +290,5 @@ export class GfPublicPageComponent implements OnInit {
     this.activitiesPageIndex = event.pageIndex;
     this.updateActivitiesDataSource();
     this.changeDetectorRef.markForCheck();
-  }
-
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
   }
 }

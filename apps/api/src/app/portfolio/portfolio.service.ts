@@ -423,7 +423,7 @@ export class PortfolioService {
     const user = await this.userService.user({ id: userId });
     const userCurrency = this.getUserCurrency(user);
 
-    const { endDate, startDate } = getIntervalFromDateRange(dateRange);
+    const { endDate, startDate } = getIntervalFromDateRange({ dateRange });
 
     const { activities } =
       await this.activitiesService.getActivitiesForPortfolioCalculator({
@@ -1069,7 +1069,7 @@ export class PortfolioService {
     const { errors, hasErrors, historicalData } =
       await portfolioCalculator.getSnapshot();
 
-    const { endDate, startDate } = getIntervalFromDateRange(dateRange);
+    const { endDate, startDate } = getIntervalFromDateRange({ dateRange });
 
     const { chart } = await portfolioCalculator.getPerformance({
       end: endDate,

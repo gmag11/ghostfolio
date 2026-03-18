@@ -25,10 +25,11 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  OnDestroy,
+  DestroyRef,
   OnInit,
   ViewChild
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -44,7 +45,7 @@ import { addIcons } from 'ionicons';
 import { ellipsisHorizontal, trashOutline } from 'ionicons/icons';
 import { get } from 'lodash';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
+import { catchError, filter, of } from 'rxjs';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,7 +74,7 @@ import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
   styleUrls: ['./admin-settings.component.scss'],
   templateUrl: './admin-settings.component.html'
 })
-export class GfAdminSettingsComponent implements OnDestroy, OnInit {
+export class GfAdminSettingsComponent implements OnInit {
   @ViewChild(MatSort) sort: MatSort;
 
   public dataSource = new MatTableDataSource<DataProviderInfo>();
@@ -92,12 +93,11 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
   public activityCallbackUrl: string | undefined;
   public user: User;
 
-  private unsubscribeSubject = new Subject<void>();
-
   public constructor(
     private adminService: AdminService,
     private changeDetectorRef: ChangeDetectorRef,
     private dataService: DataService,
+    private destroyRef: DestroyRef,
     private notificationService: NotificationService,
     private userService: UserService
   ) {
@@ -106,7 +106,7 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
 
   public ngOnInit() {
     this.userService.stateChanged
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((state) => {
         if (state?.user) {
           this.user = state.user;
@@ -133,7 +133,7 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
   public onClearActivityCallbackUrl() {
     this.dataService
       .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value: undefined })
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.initialize();
       });
@@ -159,7 +159,7 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
     if (value) {
       this.dataService
         .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value })
-        .pipe(takeUntil(this.unsubscribeSubject))
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe(() => {
           this.initialize();
         });
@@ -185,11 +185,6 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
     });
   }
 
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
-  }
-
   private initialize() {
     this.isLoading = true;
 
@@ -197,7 +192,7 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
 
     this.adminService
       .fetchAdminData()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ dataProviders, settings }) => {
         const filteredProviders = dataProviders.filter(({ dataSource }) => {
           return dataSource !== 'MANUAL';
@@ -228,7 +223,7 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
               filter((status) => {
                 return status !== null;
               }),
-              takeUntil(this.unsubscribeSubject)
+              takeUntilDestroyed(this.destroyRef)
             )
             .subscribe((status) => {
               this.ghostfolioApiStatus = status;
