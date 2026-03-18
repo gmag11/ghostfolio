@@ -253,7 +253,6 @@ export class PortfolioService {
             account.currency,
             userCurrency
           ),
-          transactionCount: activitiesCount,
           value: this.exchangeRateDataService.toCurrency(
             valueInBaseCurrency,
             userCurrency,
@@ -304,7 +303,6 @@ export class PortfolioService {
     let totalDividendInBaseCurrency = new Big(0);
     let totalInterestInBaseCurrency = new Big(0);
     let totalValueInBaseCurrency = new Big(0);
-    let transactionCount = 0;
 
     for (const account of accounts) {
       activitiesCount += account.activitiesCount;
@@ -321,8 +319,6 @@ export class PortfolioService {
       totalValueInBaseCurrency = totalValueInBaseCurrency.plus(
         account.valueInBaseCurrency
       );
-
-      transactionCount += account.transactionCount;
     }
 
     for (const account of accounts) {
@@ -337,7 +333,6 @@ export class PortfolioService {
     return {
       accounts,
       activitiesCount,
-      transactionCount,
       totalBalanceInBaseCurrency: totalBalanceInBaseCurrency.toNumber(),
       totalDividendInBaseCurrency: totalDividendInBaseCurrency.toNumber(),
       totalInterestInBaseCurrency: totalInterestInBaseCurrency.toNumber(),
@@ -612,7 +607,6 @@ export class PortfolioService {
       quantity,
       symbol,
       tags,
-      transactionCount,
       valueInBaseCurrency
     } of positions) {
       if (isFilteredByClosedHoldings === true) {
@@ -646,7 +640,6 @@ export class PortfolioService {
         marketPrice,
         symbol,
         tags,
-        transactionCount,
         allocationInPercentage: filteredValueInBaseCurrency.eq(0)
           ? 0
           : valueInBaseCurrency.div(filteredValueInBaseCurrency).toNumber(),
@@ -1718,7 +1711,6 @@ export class PortfolioService {
       sectors: [],
       symbol: currency,
       tags: [],
-      transactionCount: 0,
       valueInBaseCurrency: balance
     };
   }

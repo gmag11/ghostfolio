@@ -40,10 +40,6 @@ export interface PortfolioPosition {
   sectors: Sector[];
   symbol: string;
   tags?: Tag[];
-
-  /** @deprecated use activitiesCount instead */
-  transactionCount: number;
-
   type?: string;
   url?: string;
   valueInBaseCurrency?: number;
