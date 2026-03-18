@@ -94,7 +94,7 @@ export class ActivitiesService {
     /** Whether to include cash activities in the result. */
     withCash?: boolean;
   }) {
-    const orders = await this.getOrders({
+    const activities = await this.getActivities({
       filters,
       userCurrency,
       userId,
@@ -108,18 +108,66 @@ export class ActivitiesService {
         currency: userCurrency
       });
 
-      const cashOrders = await this.getCashOrders({
+      const cashActivities = await this.getCashActivities({
         cashDetails,
         filters,
         userCurrency,
         userId
       });
 
-      orders.activities.push(...cashOrders.activities);
-      orders.count += cashOrders.count;
+      activities.activities.push(...cashActivities.activities);
+      activities.count += cashActivities.count;
     }
 
-    return orders;
+    return activities;
+  }
+
+  /**
+   * Retrieves all activities required for the portfolio calculator, including both standard asset activities
+   * and optional synthetic activities representing cash activities.
+   */
+  @LogPerformance
+  public async getActivitiesForPortfolioCalculator({
+    filters,
+    userCurrency,
+    userId,
+    withCash = false
+  }: {
+    /** Optional filters to apply to the activities. */
+    filters?: Filter[];
+    /** The base currency of the user. */
+    userCurrency: string;
+    /** The ID of the user. */
+    userId: string;
+    /** Whether to include cash activities in the result. */
+    withCash?: boolean;
+  }) {
+    const activities = await this.getActivities({
+      filters,
+      userCurrency,
+      userId,
+      withExcludedAccountsAndActivities: false // TODO
+    });
+
+    if (withCash) {
+      const cashDetails = await this.accountService.getCashDetails({
+        filters,
+        userId,
+        currency: userCurrency
+      });
+
+      const cashActivities = await this.getCashActivities({
+        cashDetails,
+        filters,
+        userCurrency,
+        userId
+      });
+
+      activities.activities.push(...cashActivities.activities);
+      activities.count += cashActivities.count;
+    }
+
+    return activities;
   }
 
   public async assignTags({
@@ -396,7 +444,7 @@ export class ActivitiesService {
     void (async () => {
       try {
         // Get user settings to check for activity callback URL
-        const user = await this.userService.user({ id: order.userId });
+        const user = await this.userService.user({ id: activity.userId });
         const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
         if (!callbackUrl) return;
 
@@ -986,54 +1034,6 @@ export class ActivitiesService {
     return { activities, count };
   }
 
-  /**
-   * Retrieves all activities required for the portfolio calculator, including both standard asset activities
-   * and optional synthetic activities representing cash activities.
-   */
-  @LogPerformance
-  public async getActivitiesForPortfolioCalculator({
-    filters,
-    userCurrency,
-    userId,
-    withCash = false
-  }: {
-    /** Optional filters to apply to the activities. */
-    filters?: Filter[];
-    /** The base currency of the user. */
-    userCurrency: string;
-    /** The ID of the user. */
-    userId: string;
-    /** Whether to include cash activities in the result. */
-    withCash?: boolean;
-  }) {
-    const activities = await this.getActivities({
-      filters,
-      userCurrency,
-      userId,
-      withExcludedAccountsAndActivities: false // TODO
-    });
-
-    if (withCash) {
-      const cashDetails = await this.accountService.getCashDetails({
-        filters,
-        userId,
-        currency: userCurrency
-      });
-
-      const cashActivities = await this.getCashActivities({
-        cashDetails,
-        filters,
-        userCurrency,
-        userId
-      });
-
-      activities.activities.push(...cashActivities.activities);
-      activities.count += cashActivities.count;
-    }
-
-    return activities;
-  }
-
   public async getStatisticsByCurrency(
     currency: EnhancedSymbolProfile['currency']
   ): Promise<{
@@ -1244,7 +1244,7 @@ export class ActivitiesService {
     void (async () => {
       try {
         // Get user settings to check for activity callback URL
-        const user = await this.userService.user({ id: order.userId });
+        const user = await this.userService.user({ id: activity.userId });
         const callbackUrl = user?.settings?.settings?.activityCallbackUrl;
         if (!callbackUrl) return;
 
@@ -1260,10 +1260,10 @@ export class ActivitiesService {
 
         // Ensure we have comment and tags by fetching the full order relations
         const fullOrder = (await this.prismaService.order.findUnique({
-          where: { id: order.id },
+          where: { id: activity.id },
           include: { tags: true, SymbolProfile: true }
         })) ?? {
-          ...order,
+          ...activity,
           tags: [],
           SymbolProfile: null
         };

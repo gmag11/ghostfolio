@@ -18,7 +18,7 @@ import { UserService } from './user.service';
   controllers: [UserController],
   exports: [UserService],
   imports: [
-    ActivitiesModule,
+    forwardRef(() => ActivitiesModule),
     ConfigurationModule,
     I18nModule,
     ImpersonationModule,
