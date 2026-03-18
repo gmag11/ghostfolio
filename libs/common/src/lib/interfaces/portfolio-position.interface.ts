@@ -22,6 +22,7 @@ export interface PortfolioPosition {
     | 'assetClass'
     | 'assetSubClass'
     | 'countries'
+    | 'currency'
     | 'dataSource'
     | 'holdings'
     | 'name'
@@ -43,6 +44,7 @@ export interface PortfolioPosition {
   /** @deprecated */
   countries: Country[];
 
+  /** @deprecated */
   currency: string;
 
   /** @deprecated */
