@@ -26,7 +26,8 @@ import {
   ChangeDetectorRef,
   Component,
   OnDestroy,
-  OnInit
+  OnInit,
+  ViewChild
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
@@ -35,11 +36,13 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSort, MatSortModule } from '@angular/material/sort';
 import { MatTableDataSource, MatTableModule } from '@angular/material/table';
 import { RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { ellipsisHorizontal, trashOutline } from 'ionicons/icons';
+import { get } from 'lodash';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
 
@@ -61,6 +64,7 @@ import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
     MatInputModule,
     MatMenuModule,
     MatProgressBarModule,
+    MatSortModule,
     MatTableModule,
     NgxSkeletonLoaderModule,
     RouterModule
@@ -70,6 +74,8 @@ import { catchError, filter, of, Subject, takeUntil } from 'rxjs';
   templateUrl: './admin-settings.component.html'
 })
 export class GfAdminSettingsComponent implements OnDestroy, OnInit {
+  @ViewChild(MatSort) sort: MatSort;
+
   public dataSource = new MatTableDataSource<DataProviderInfo>();
   public defaultDateFormat: string;
   public displayedColumns = [
@@ -84,9 +90,9 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
   public isLoading = false;
   public pricingUrl: string;
   public activityCallbackUrl: string | undefined;
+  public user: User;
 
   private unsubscribeSubject = new Subject<void>();
-  private user: User;
 
   public constructor(
     private adminService: AdminService,
@@ -124,6 +130,15 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
     return provider.dataSource === 'GHOSTFOLIO';
   }
 
+  public onClearActivityCallbackUrl() {
+    this.dataService
+      .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value: undefined })
+      .pipe(takeUntil(this.unsubscribeSubject))
+      .subscribe(() => {
+        this.initialize();
+      });
+  }
+
   public onRemoveGhostfolioApiKey() {
     this.notificationService.confirm({
       confirmFn: () => {
@@ -136,6 +151,19 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
       confirmType: ConfirmationDialogType.Warn,
       title: $localize`Do you really want to delete the API key?`
     });
+  }
+
+  public onSetActivityCallbackUrl() {
+    const value = (this.activityCallbackUrl || '').trim();
+
+    if (value) {
+      this.dataService
+        .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value })
+        .pipe(takeUntil(this.unsubscribeSubject))
+        .subscribe(() => {
+          this.initialize();
+        });
+    }
   }
 
   public onSetGhostfolioApiKey() {
@@ -176,6 +204,8 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
         });
 
         this.dataSource = new MatTableDataSource(filteredProviders);
+        this.dataSource.sort = this.sort;
+        this.dataSource.sortingDataAccessor = get;
 
         const ghostfolioApiKey = settings[
           PROPERTY_API_KEY_GHOSTFOLIO
@@ -213,28 +243,6 @@ export class GfAdminSettingsComponent implements OnDestroy, OnInit {
         this.isLoading = false;
 
         this.changeDetectorRef.markForCheck();
-      });
-  }
-
-  public onSetActivityCallbackUrl() {
-    const value = (this.activityCallbackUrl || '').trim();
-
-    if (value) {
-      this.dataService
-        .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value })
-        .pipe(takeUntil(this.unsubscribeSubject))
-        .subscribe(() => {
-          this.initialize();
-        });
-    }
-  }
-
-  public onClearActivityCallbackUrl() {
-    this.dataService
-      .putAdminSetting(PROPERTY_ACTIVITY_CALLBACK_URL, { value: undefined })
-      .pipe(takeUntil(this.unsubscribeSubject))
-      .subscribe(() => {
-        this.initialize();
       });
   }
 }

@@ -46,8 +46,8 @@ import { groupBy, uniqBy } from 'lodash';
 import { randomUUID } from 'node:crypto';
 
 @Injectable()
-export class OrderService {
-  private readonly logger = new Logger(OrderService.name);
+export class ActivitiesService {
+  private readonly logger = new Logger(ActivitiesService.name);
   private pendingCallbacks = new Map<
     string,
     { orderId: string; operation: 'create' | 'update' | 'delete' }[]
@@ -128,7 +128,7 @@ export class OrderService {
     tags,
     userId
   }: { tags: Tag[]; userId: string } & AssetProfileIdentifier) {
-    const orders = await this.prismaService.order.findMany({
+    const activities = await this.prismaService.order.findMany({
       where: {
         userId,
         SymbolProfile: {
@@ -139,7 +139,7 @@ export class OrderService {
     });
 
     await Promise.all(
-      orders.map(({ id }) =>
+      activities.map(({ id }) =>
         this.prismaService.order.update({
           data: {
             tags: {
@@ -162,7 +162,7 @@ export class OrderService {
     );
   }
 
-  public async createOrder(
+  public async createActivity(
     data: Prisma.OrderCreateInput & {
       accountId?: string;
       assetClass?: AssetClass;
@@ -267,7 +267,7 @@ export class OrderService {
       ? false
       : isAfter(data.date as Date, endOfToday());
 
-    const order = await this.prismaService.order.create({
+    const activity = await this.prismaService.order.create({
       data: {
         ...orderData,
         account,
@@ -301,26 +301,27 @@ export class OrderService {
     this.eventEmitter.emit(
       AssetProfileChangedEvent.getName(),
       new AssetProfileChangedEvent({
-        currency: order.SymbolProfile.currency,
-        dataSource: order.SymbolProfile.dataSource,
-        symbol: order.SymbolProfile.symbol
+        currency: activity.SymbolProfile.currency,
+        dataSource: activity.SymbolProfile.dataSource,
+        symbol: activity.SymbolProfile.symbol
       })
     );
 
     this.eventEmitter.emit(
       PortfolioChangedEvent.getName(),
       new PortfolioChangedEvent({
-        userId: order.userId
+        userId: activity.userId
       })
     );
 
     // Check if SymbolProfile has complete data before sending callback
     const hasCompleteData =
-      order.SymbolProfile?.name || order.SymbolProfile?.dataSource === 'MANUAL';
+      activity.SymbolProfile?.name ||
+      activity.SymbolProfile?.dataSource === 'MANUAL';
 
     if (hasCompleteData) {
       // Send callback immediately if data is complete
-      this.sendActivityCallback(order.id, 'create').catch((err) => {
+      this.sendActivityCallback(activity.id, 'create').catch((err) => {
         this.logger.warn(
           `Activity callback error: ${(err as Error)?.message ?? String(err)}`
         );
@@ -328,15 +329,15 @@ export class OrderService {
     } else {
       // Store pending callback to be sent after data gathering completes
       this.logger.log(
-        `Deferring callback for order ${order.id} until asset data gathered`
+        `Deferring callback for order ${activity.id} until asset data gathered`
       );
-      this.storePendingCallback(order.id, 'create', {
-        dataSource: order.SymbolProfile.dataSource,
-        symbol: order.SymbolProfile.symbol
+      this.storePendingCallback(activity.id, 'create', {
+        dataSource: activity.SymbolProfile.dataSource,
+        symbol: activity.SymbolProfile.symbol
       });
     }
 
-    return order;
+    return activity;
   }
 
   public async processPendingCallbacks(
@@ -369,7 +370,7 @@ export class OrderService {
     this.pendingCallbacks.delete(key);
   }
 
-  public async deleteOrder(
+  public async deleteActivity(
     where: Prisma.OrderWhereUniqueInput
   ): Promise<Order> {
     // Fetch the full order details BEFORE deleting for callback purposes
@@ -378,17 +379,17 @@ export class OrderService {
       include: { tags: true, SymbolProfile: true }
     });
 
-    const order = await this.prismaService.order.delete({
+    const activity = await this.prismaService.order.delete({
       where
     });
 
     const [symbolProfile] =
       await this.symbolProfileService.getSymbolProfilesByIds([
-        order.symbolProfileId
+        activity.symbolProfileId
       ]);
 
     if (symbolProfile.activitiesCount === 0) {
-      await this.symbolProfileService.deleteById(order.symbolProfileId);
+      await this.symbolProfileService.deleteById(activity.symbolProfileId);
     }
 
     // Fire-and-forget: call activity callback URL if configured. Do not block or throw.
@@ -412,7 +413,7 @@ export class OrderService {
         // Use the pre-fetched full order details (since the order was already deleted)
         // fullOrderForCallback always has tags and SymbolProfile, but order might not
         const fullOrder = fullOrderForCallback ?? {
-          ...order,
+          ...activity,
           tags: [],
           SymbolProfile: null
         };
@@ -491,21 +492,21 @@ export class OrderService {
     this.eventEmitter.emit(
       PortfolioChangedEvent.getName(),
       new PortfolioChangedEvent({
-        userId: order.userId
+        userId: activity.userId
       })
     );
 
-    return order;
+    return activity;
   }
 
-  public async deleteOrders({
+  public async deleteActivities({
     filters,
     userId
   }: {
     filters?: Filter[];
     userId: string;
   }): Promise<number> {
-    const { activities } = await this.getOrders({
+    const { activities } = await this.getActivities({
       filters,
       userId,
       includeDrafts: true,
@@ -545,7 +546,7 @@ export class OrderService {
   }
 
   /**
-   * Generates synthetic orders for cash holdings based on account balance history.
+   * Generates synthetic activities for cash holdings based on account balance history.
    * Treat currencies as assets with a fixed unit price of 1.0 (in their own currency) to allow
    * performance tracking based on exchange rate fluctuations.
    *
@@ -555,7 +556,7 @@ export class OrderService {
    * @param userId - The ID of the user.
    * @returns A response containing the list of synthetic cash activities.
    */
-  public async getCashOrders({
+  public async getCashActivities({
     cashDetails,
     filters = [],
     userCurrency,
@@ -669,7 +670,10 @@ export class OrderService {
     };
   }
 
-  public async getLatestOrder({ dataSource, symbol }: AssetProfileIdentifier) {
+  public async getLatestActivity({
+    dataSource,
+    symbol
+  }: AssetProfileIdentifier) {
     return this.prismaService.order.findFirst({
       orderBy: {
         date: 'desc'
@@ -680,7 +684,7 @@ export class OrderService {
     });
   }
 
-  public async getOrders({
+  public async getActivities({
     endDate,
     filters,
     includeDrafts = false,
@@ -982,6 +986,54 @@ export class OrderService {
     return { activities, count };
   }
 
+  /**
+   * Retrieves all activities required for the portfolio calculator, including both standard asset activities
+   * and optional synthetic activities representing cash activities.
+   */
+  @LogPerformance
+  public async getActivitiesForPortfolioCalculator({
+    filters,
+    userCurrency,
+    userId,
+    withCash = false
+  }: {
+    /** Optional filters to apply to the activities. */
+    filters?: Filter[];
+    /** The base currency of the user. */
+    userCurrency: string;
+    /** The ID of the user. */
+    userId: string;
+    /** Whether to include cash activities in the result. */
+    withCash?: boolean;
+  }) {
+    const activities = await this.getActivities({
+      filters,
+      userCurrency,
+      userId,
+      withExcludedAccountsAndActivities: false // TODO
+    });
+
+    if (withCash) {
+      const cashDetails = await this.accountService.getCashDetails({
+        filters,
+        userId,
+        currency: userCurrency
+      });
+
+      const cashActivities = await this.getCashActivities({
+        cashDetails,
+        filters,
+        userCurrency,
+        userId
+      });
+
+      activities.activities.push(...cashActivities.activities);
+      activities.count += cashActivities.count;
+    }
+
+    return activities;
+  }
+
   public async getStatisticsByCurrency(
     currency: EnhancedSymbolProfile['currency']
   ): Promise<{
@@ -1010,7 +1062,7 @@ export class OrderService {
     });
   }
 
-  public async updateOrder({
+  public async updateActivity({
     data,
     where
   }: {
@@ -1177,7 +1229,7 @@ export class OrderService {
       data: { tags: { set: [] } }
     });
 
-    const order = await this.prismaService.order.update({
+    const activity = await this.prismaService.order.update({
       where,
       data: {
         ...data,
@@ -1287,11 +1339,11 @@ export class OrderService {
     this.eventEmitter.emit(
       PortfolioChangedEvent.getName(),
       new PortfolioChangedEvent({
-        userId: order.userId
+        userId: activity.userId
       })
     );
 
-    return order;
+    return activity;
   }
 
   private async sendActivityCallback(

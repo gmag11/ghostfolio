@@ -16,12 +16,12 @@ import { SymbolProfileModule } from '@ghostfolio/api/services/symbol-profile/sym
 
 import { Module, forwardRef } from '@nestjs/common';
 
-import { OrderController } from './order.controller';
-import { OrderService } from './order.service';
+import { ActivitiesController } from './activities.controller';
+import { ActivitiesService } from './activities.service';
 
 @Module({
-  controllers: [OrderController],
-  exports: [OrderService],
+  controllers: [ActivitiesController],
+  exports: [ActivitiesService],
   imports: [
     ApiModule,
     CacheModule,
@@ -37,6 +37,6 @@ import { OrderService } from './order.service';
     TransformDataSourceInResponseModule,
     forwardRef(() => UserModule)
   ],
-  providers: [AccountBalanceService, AccountService, OrderService]
+  providers: [AccountBalanceService, AccountService, ActivitiesService]
 })
-export class OrderModule {}
+export class ActivitiesModule {}

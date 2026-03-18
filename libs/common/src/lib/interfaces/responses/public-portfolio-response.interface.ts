@@ -14,24 +14,41 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
     [symbol: string]: Pick<
       PortfolioPosition,
       | 'allocationInPercentage'
+
+      /** @deprecated */
       | 'assetClass'
+      | 'assetProfile'
+
+      /** @deprecated */
       | 'assetSubClass'
       | 'averagePrice'
+
+      /** @deprecated */
       | 'countries'
       | 'currency'
+
+      /** @deprecated */
       | 'dataSource'
       | 'dateOfFirstActivity'
       | 'grossPerformance'
       | 'investment'
       | 'marketPrice'
       | 'markets'
+
+      /** @deprecated */
       | 'name'
       | 'netPerformance'
       | 'netPerformancePercentWithCurrencyEffect'
       | 'netPerformanceWithCurrencyEffect'
       | 'quantity'
+
+      /** @deprecated */
       | 'sectors'
+
+      /** @deprecated */
       | 'symbol'
+
+      /** @deprecated */
       | 'url'
       | 'valueInBaseCurrency'
       | 'valueInPercentage'
