@@ -8,23 +8,22 @@ import {
   ChangeDetectorRef,
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
-  OnDestroy,
+  DestroyRef,
   OnInit
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatTabsModule } from '@angular/material/tabs';
 import { RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
+  albumsOutline,
   analyticsOutline,
   bookmarkOutline,
   newspaperOutline,
-  readerOutline,
-  walletOutline
+  readerOutline
 } from 'ionicons/icons';
 import { DeviceDetectorService } from 'ngx-device-detector';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 
 @Component({
   host: { class: 'page has-tabs' },
@@ -34,22 +33,21 @@ import { takeUntil } from 'rxjs/operators';
   styleUrls: ['./home-page.scss'],
   templateUrl: './home-page.html'
 })
-export class GfHomePageComponent implements OnDestroy, OnInit {
+export class GfHomePageComponent implements OnInit {
   public deviceType: string;
   public hasImpersonationId: boolean;
   public tabs: TabConfiguration[] = [];
   public user: User;
 
-  private unsubscribeSubject = new Subject<void>();
-
   public constructor(
     private changeDetectorRef: ChangeDetectorRef,
+    private destroyRef: DestroyRef,
     private deviceService: DeviceDetectorService,
     private impersonationStorageService: ImpersonationStorageService,
     private userService: UserService
   ) {
     this.userService.stateChanged
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((state) => {
         if (state?.user) {
           this.user = state.user;
@@ -61,7 +59,7 @@ export class GfHomePageComponent implements OnDestroy, OnInit {
               routerLink: internalRoutes.home.routerLink
             },
             {
-              iconName: 'wallet-outline',
+              iconName: 'albums-outline',
               label: internalRoutes.home.subRoutes.holdings.title,
               routerLink: internalRoutes.home.subRoutes.holdings.routerLink
             },
@@ -97,11 +95,11 @@ export class GfHomePageComponent implements OnDestroy, OnInit {
       });
 
     addIcons({
+      albumsOutline,
       analyticsOutline,
       bookmarkOutline,
       newspaperOutline,
-      readerOutline,
-      walletOutline
+      readerOutline
     });
   }
 
@@ -110,14 +108,9 @@ export class GfHomePageComponent implements OnDestroy, OnInit {
 
     this.impersonationStorageService
       .onChangeHasImpersonation()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((impersonationId) => {
         this.hasImpersonationId = !!impersonationId;
       });
-  }
-
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
   }
 }

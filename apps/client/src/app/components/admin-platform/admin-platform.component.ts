@@ -1,20 +1,22 @@
-import { CreatePlatformDto } from '@ghostfolio/api/app/platform/create-platform.dto';
-import { UpdatePlatformDto } from '@ghostfolio/api/app/platform/update-platform.dto';
-import { ConfirmationDialogType } from '@ghostfolio/client/core/notification/confirmation-dialog/confirmation-dialog.type';
-import { NotificationService } from '@ghostfolio/client/core/notification/notification.service';
-import { AdminService } from '@ghostfolio/client/services/admin.service';
-import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
+import { CreatePlatformDto, UpdatePlatformDto } from '@ghostfolio/common/dtos';
+import { ConfirmationDialogType } from '@ghostfolio/common/enums';
+import { getLocale } from '@ghostfolio/common/helper';
 import { GfEntityLogoComponent } from '@ghostfolio/ui/entity-logo';
+import { NotificationService } from '@ghostfolio/ui/notifications';
+import { AdminService, DataService } from '@ghostfolio/ui/services';
+import { GfValueComponent } from '@ghostfolio/ui/value';
 
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  OnDestroy,
+  DestroyRef,
+  Input,
   OnInit,
   ViewChild
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
@@ -31,14 +33,15 @@ import {
 } from 'ionicons/icons';
 import { get } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
-import { Subject, takeUntil } from 'rxjs';
 
 import { GfCreateOrUpdatePlatformDialogComponent } from './create-or-update-platform-dialog/create-or-update-platform-dialog.component';
+import { CreateOrUpdatePlatformDialogParams } from './create-or-update-platform-dialog/interfaces/interfaces';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     GfEntityLogoComponent,
+    GfValueComponent,
     IonIcon,
     MatButtonModule,
     MatMenuModule,
@@ -50,7 +53,9 @@ import { GfCreateOrUpdatePlatformDialogComponent } from './create-or-update-plat
   styleUrls: ['./admin-platform.component.scss'],
   templateUrl: './admin-platform.component.html'
 })
-export class GfAdminPlatformComponent implements OnInit, OnDestroy {
+export class GfAdminPlatformComponent implements OnInit {
+  @Input() locale = getLocale();
+
   @ViewChild(MatSort) sort: MatSort;
 
   public dataSource = new MatTableDataSource<Platform>();
@@ -58,12 +63,11 @@ export class GfAdminPlatformComponent implements OnInit, OnDestroy {
   public displayedColumns = ['name', 'url', 'accounts', 'actions'];
   public platforms: Platform[];
 
-  private unsubscribeSubject = new Subject<void>();
-
   public constructor(
     private adminService: AdminService,
     private changeDetectorRef: ChangeDetectorRef,
     private dataService: DataService,
+    private destroyRef: DestroyRef,
     private deviceService: DeviceDetectorService,
     private dialog: MatDialog,
     private notificationService: NotificationService,
@@ -72,7 +76,7 @@ export class GfAdminPlatformComponent implements OnInit, OnDestroy {
     private userService: UserService
   ) {
     this.route.queryParams
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         if (params['createPlatformDialog']) {
           this.openCreatePlatformDialog();
@@ -114,20 +118,15 @@ export class GfAdminPlatformComponent implements OnInit, OnDestroy {
     });
   }
 
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
-  }
-
   private deletePlatform(aId: string) {
     this.adminService
       .deletePlatform(aId)
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.userService
             .get(true)
-            .pipe(takeUntil(this.unsubscribeSubject))
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe();
 
           this.fetchPlatforms();
@@ -138,7 +137,7 @@ export class GfAdminPlatformComponent implements OnInit, OnDestroy {
   private fetchPlatforms() {
     this.adminService
       .fetchPlatforms()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((platforms) => {
         this.platforms = platforms;
 
@@ -153,33 +152,34 @@ export class GfAdminPlatformComponent implements OnInit, OnDestroy {
   }
 
   private openCreatePlatformDialog() {
-    const dialogRef = this.dialog.open(
+    const dialogRef = this.dialog.open<
       GfCreateOrUpdatePlatformDialogComponent,
-      {
-        data: {
-          platform: {
-            name: null,
-            url: null
-          }
-        },
-        height: this.deviceType === 'mobile' ? '98vh' : undefined,
-        width: this.deviceType === 'mobile' ? '100vw' : '50rem'
-      }
-    );
+      CreateOrUpdatePlatformDialogParams
+    >(GfCreateOrUpdatePlatformDialogComponent, {
+      data: {
+        platform: {
+          id: null,
+          name: null,
+          url: null
+        }
+      },
+      height: this.deviceType === 'mobile' ? '98vh' : undefined,
+      width: this.deviceType === 'mobile' ? '100vw' : '50rem'
+    });
 
     dialogRef
       .afterClosed()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((platform: CreatePlatformDto | null) => {
         if (platform) {
           this.adminService
             .postPlatform(platform)
-            .pipe(takeUntil(this.unsubscribeSubject))
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               next: () => {
                 this.userService
                   .get(true)
-                  .pipe(takeUntil(this.unsubscribeSubject))
+                  .pipe(takeUntilDestroyed(this.destroyRef))
                   .subscribe();
 
                 this.fetchPlatforms();
@@ -191,35 +191,43 @@ export class GfAdminPlatformComponent implements OnInit, OnDestroy {
       });
   }
 
-  private openUpdatePlatformDialog({ id, name, url }) {
-    const dialogRef = this.dialog.open(
+  private openUpdatePlatformDialog({
+    id,
+    name,
+    url
+  }: {
+    id: string;
+    name: string;
+    url: string;
+  }) {
+    const dialogRef = this.dialog.open<
       GfCreateOrUpdatePlatformDialogComponent,
-      {
-        data: {
-          platform: {
-            id,
-            name,
-            url
-          }
-        },
-        height: this.deviceType === 'mobile' ? '98vh' : undefined,
-        width: this.deviceType === 'mobile' ? '100vw' : '50rem'
-      }
-    );
+      CreateOrUpdatePlatformDialogParams
+    >(GfCreateOrUpdatePlatformDialogComponent, {
+      data: {
+        platform: {
+          id,
+          name,
+          url
+        }
+      },
+      height: this.deviceType === 'mobile' ? '98vh' : undefined,
+      width: this.deviceType === 'mobile' ? '100vw' : '50rem'
+    });
 
     dialogRef
       .afterClosed()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((platform: UpdatePlatformDto | null) => {
         if (platform) {
           this.adminService
             .putPlatform(platform)
-            .pipe(takeUntil(this.unsubscribeSubject))
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               next: () => {
                 this.userService
                   .get(true)
-                  .pipe(takeUntil(this.unsubscribeSubject))
+                  .pipe(takeUntilDestroyed(this.destroyRef))
                   .subscribe();
 
                 this.fetchPlatforms();

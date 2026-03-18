@@ -1,4 +1,4 @@
-import { OrderService } from '@ghostfolio/api/app/order/order.service';
+import { ActivitiesService } from '@ghostfolio/api/app/activities/activities.service';
 import { environment } from '@ghostfolio/api/environments/environment';
 import { BenchmarkService } from '@ghostfolio/api/services/benchmark/benchmark.service';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
@@ -23,7 +23,8 @@ import {
   AdminMarketData,
   AdminMarketDataDetails,
   AdminMarketDataItem,
-  AdminUsers,
+  AdminUserResponse,
+  AdminUsersResponse,
   AssetProfileIdentifier,
   EnhancedSymbolProfile,
   Filter
@@ -35,7 +36,8 @@ import {
   BadRequestException,
   HttpException,
   Injectable,
-  Logger
+  Logger,
+  NotFoundException
 } from '@nestjs/common';
 import {
   AssetClass,
@@ -53,12 +55,12 @@ import { groupBy } from 'lodash';
 @Injectable()
 export class AdminService {
   public constructor(
+    private readonly activitiesService: ActivitiesService,
     private readonly benchmarkService: BenchmarkService,
     private readonly configurationService: ConfigurationService,
     private readonly dataProviderService: DataProviderService,
     private readonly exchangeRateDataService: ExchangeRateDataService,
     private readonly marketDataService: MarketDataService,
-    private readonly orderService: OrderService,
     private readonly prismaService: PrismaService,
     private readonly propertyService: PropertyService,
     private readonly symbolProfileService: SymbolProfileService
@@ -136,11 +138,11 @@ export class AdminService {
   public async get(): Promise<AdminData> {
     const dataSources = Object.values(DataSource);
 
-    const [enabledDataSources, settings, transactionCount, userCount] =
+    const [activitiesCount, enabledDataSources, settings, userCount] =
       await Promise.all([
+        this.prismaService.order.count(),
         this.dataProviderService.getDataSources(),
         this.propertyService.get(),
-        this.prismaService.order.count(),
         this.countUsersWithAnalytics()
       ]);
 
@@ -180,9 +182,9 @@ export class AdminService {
     ).filter(Boolean);
 
     return {
+      activitiesCount,
       dataProviders,
       settings,
-      transactionCount,
       userCount,
       version: environment.version
     };
@@ -223,6 +225,10 @@ export class AdminService {
       presetId === 'ETF_WITHOUT_SECTORS'
     ) {
       filters = [{ id: 'ETF', type: 'ASSET_SUB_CLASS' }];
+    } else if (presetId === 'NO_ACTIVITIES') {
+      where.activities = {
+        none: {}
+      };
     }
 
     const searchQuery = filters.find(({ type }) => {
@@ -464,10 +470,12 @@ export class AdminService {
     let currency: EnhancedSymbolProfile['currency'] = '-';
     let dateOfFirstActivity: EnhancedSymbolProfile['dateOfFirstActivity'];
 
-    if (isCurrency(getCurrencyFromSymbol(symbol))) {
+    const isCurrencyAssetProfile = isCurrency(getCurrencyFromSymbol(symbol));
+
+    if (isCurrencyAssetProfile) {
       currency = getCurrencyFromSymbol(symbol);
       ({ activitiesCount, dateOfFirstActivity } =
-        await this.orderService.getStatisticsByCurrency(currency));
+        await this.activitiesService.getStatisticsByCurrency(currency));
     }
 
     const [[assetProfile], marketData] = await Promise.all([
@@ -502,9 +510,23 @@ export class AdminService {
         dataSource,
         dateOfFirstActivity,
         symbol,
+        assetClass: isCurrencyAssetProfile ? AssetClass.LIQUIDITY : undefined,
+        assetSubClass: isCurrencyAssetProfile ? AssetSubClass.CASH : undefined,
         isActive: true
       }
     };
+  }
+
+  public async getUser(id: string): Promise<AdminUserResponse> {
+    const [user] = await this.getUsersWithAnalytics({
+      where: { id }
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return user;
   }
 
   public async getUsers({
@@ -513,10 +535,13 @@ export class AdminService {
   }: {
     skip?: number;
     take?: number;
-  }): Promise<AdminUsers> {
+  }): Promise<AdminUsersResponse> {
     const [count, users] = await Promise.all([
       this.countUsersWithAnalytics(),
-      this.getUsersWithAnalytics({ skip, take })
+      this.getUsersWithAnalytics({
+        skip,
+        take
+      })
     ]);
 
     return { count, users };
@@ -773,7 +798,7 @@ export class AdminService {
         if (isCurrency(getCurrencyFromSymbol(symbol))) {
           currency = getCurrencyFromSymbol(symbol);
           ({ activitiesCount, dateOfFirstActivity } =
-            await this.orderService.getStatisticsByCurrency(currency));
+            await this.activitiesService.getStatisticsByCurrency(currency));
         }
 
         const lastMarketPrice = lastMarketPriceMap.get(
@@ -814,16 +839,16 @@ export class AdminService {
 
   private async getUsersWithAnalytics({
     skip,
-    take
+    take,
+    where
   }: {
     skip?: number;
     take?: number;
-  }): Promise<AdminUsers['users']> {
+    where?: Prisma.UserWhereInput;
+  }): Promise<AdminUsersResponse['users']> {
     let orderBy: Prisma.Enumerable<Prisma.UserOrderByWithRelationInput> = [
       { createdAt: 'desc' }
     ];
-
-    let where: Prisma.UserWhereInput;
 
     if (this.configurationService.get('ENABLE_FEATURE_SUBSCRIPTION')) {
       orderBy = [
@@ -834,11 +859,19 @@ export class AdminService {
         }
       ];
 
-      where = {
-        NOT: {
-          analytics: null
-        }
+      const noAnalyticsCondition: Prisma.UserWhereInput['NOT'] = {
+        analytics: null
       };
+
+      if (where) {
+        if (where.NOT) {
+          where.NOT = { ...where.NOT, ...noAnalyticsCondition };
+        } else {
+          where.NOT = noAnalyticsCondition;
+        }
+      } else {
+        where = { NOT: noAnalyticsCondition };
+      }
     }
 
     const usersWithAnalytics = await this.prismaService.user.findMany({
@@ -860,6 +893,7 @@ export class AdminService {
         },
         createdAt: true,
         id: true,
+        provider: true,
         role: true,
         subscriptions: {
           orderBy: {
@@ -876,7 +910,7 @@ export class AdminService {
     });
 
     return usersWithAnalytics.map(
-      ({ _count, analytics, createdAt, id, role, subscriptions }) => {
+      ({ _count, analytics, createdAt, id, provider, role, subscriptions }) => {
         const daysSinceRegistration =
           differenceInDays(new Date(), createdAt) + 1;
         const engagement = analytics
@@ -893,6 +927,7 @@ export class AdminService {
           createdAt,
           engagement,
           id,
+          provider,
           role,
           subscription,
           accountCount: _count.accounts || 0,

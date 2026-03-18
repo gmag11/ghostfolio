@@ -1,13 +1,16 @@
-import { DataService } from '@ghostfolio/client/services/data.service';
 import { UNKNOWN_KEY } from '@ghostfolio/common/config';
 import { prettifySymbol } from '@ghostfolio/common/helper';
 import {
+  InfoItem,
   PortfolioPosition,
   PublicPortfolioResponse
 } from '@ghostfolio/common/interfaces';
+import { hasPermission, permissions } from '@ghostfolio/common/permissions';
 import { Market } from '@ghostfolio/common/types';
+import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table/activities-table.component';
 import { GfHoldingsTableComponent } from '@ghostfolio/ui/holdings-table/holdings-table.component';
 import { GfPortfolioProportionChartComponent } from '@ghostfolio/ui/portfolio-proportion-chart/portfolio-proportion-chart.component';
+import { DataService } from '@ghostfolio/ui/services';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 import { GfWorldMapChartComponent } from '@ghostfolio/ui/world-map-chart';
 
@@ -16,22 +19,26 @@ import {
   ChangeDetectorRef,
   Component,
   CUSTOM_ELEMENTS_SCHEMA,
+  DestroyRef,
   OnInit
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
+import { MatTableDataSource } from '@angular/material/table';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AssetClass } from '@prisma/client';
 import { StatusCodes } from 'http-status-codes';
 import { isNumber } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
-import { EMPTY, Subject } from 'rxjs';
-import { catchError, takeUntil } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   host: { class: 'page' },
   imports: [
     CommonModule,
+    GfActivitiesTableComponent,
     GfHoldingsTableComponent,
     GfPortfolioProportionChartComponent,
     GfValueComponent,
@@ -53,10 +60,16 @@ export class GfPublicPageComponent implements OnInit {
   };
   public defaultAlias = $localize`someone`;
   public deviceType: string;
+  public hasPermissionForSubscription: boolean;
   public holdings: PublicPortfolioResponse['holdings'][string][];
+  public info: InfoItem;
+  public latestActivitiesDataSource: MatTableDataSource<
+    PublicPortfolioResponse['latestActivities'][0]
+  >;
   public markets: {
     [key in Market]: { id: Market; valueInPercentage: number };
   };
+  public pageSize = Number.MAX_SAFE_INTEGER;
   public positions: {
     [symbol: string]: Pick<PortfolioPosition, 'currency' | 'name'> & {
       value: number;
@@ -72,18 +85,25 @@ export class GfPublicPageComponent implements OnInit {
   public UNKNOWN_KEY = UNKNOWN_KEY;
 
   private accessId: string;
-  private unsubscribeSubject = new Subject<void>();
 
   public constructor(
     private activatedRoute: ActivatedRoute,
     private changeDetectorRef: ChangeDetectorRef,
     private dataService: DataService,
+    private destroyRef: DestroyRef,
     private deviceService: DeviceDetectorService,
     private router: Router
   ) {
     this.activatedRoute.params.subscribe((params) => {
       this.accessId = params['id'];
     });
+
+    this.info = this.dataService.fetchInfo();
+
+    this.hasPermissionForSubscription = hasPermission(
+      this.info?.globalPermissions,
+      permissions.enableSubscription
+    );
   }
 
   public ngOnInit() {
@@ -92,7 +112,7 @@ export class GfPublicPageComponent implements OnInit {
     this.dataService
       .fetchPublicPortfolio(this.accessId)
       .pipe(
-        takeUntil(this.unsubscribeSubject),
+        takeUntilDestroyed(this.destroyRef),
         catchError((error) => {
           if (error.status === StatusCodes.NOT_FOUND) {
             console.error(error);
@@ -106,6 +126,10 @@ export class GfPublicPageComponent implements OnInit {
         this.publicPortfolioDetails = portfolioPublicDetails;
 
         this.initializeAnalysisData();
+
+        this.latestActivitiesDataSource = new MatTableDataSource(
+          this.publicPortfolioDetails.latestActivities
+        );
 
         this.changeDetectorRef.markForCheck();
       });
@@ -223,10 +247,5 @@ export class GfPublicPageComponent implements OnInit {
           : position.valueInPercentage
       };
     }
-  }
-
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
   }
 }

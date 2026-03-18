@@ -4,15 +4,16 @@ import { Role } from '@prisma/client';
 
 export const permissions = {
   accessAdminControl: 'accessAdminControl',
+  accessAdminControlBullBoard: 'accessAdminControlBullBoard',
   accessAssistant: 'accessAssistant',
   accessHoldingsChart: 'accessHoldingsChart',
   createAccess: 'createAccess',
   createAccount: 'createAccount',
   createAccountBalance: 'createAccountBalance',
+  createActivity: 'createActivity',
   createApiKey: 'createApiKey',
   createMarketData: 'createMarketData',
   createMarketDataOfOwnAssetProfile: 'createMarketDataOfOwnAssetProfile',
-  createOrder: 'createOrder',
   createOwnTag: 'createOwnTag',
   createPlatform: 'createPlatform',
   createTag: 'createTag',
@@ -21,18 +22,20 @@ export const permissions = {
   deleteAccess: 'deleteAccess',
   deleteAccount: 'deleteAccount',
   deleteAccountBalance: 'deleteAccountBalance',
+  deleteActivity: 'deleteActivity',
   deleteAuthDevice: 'deleteAuthDevice',
-  deleteOrder: 'deleteOrder',
   deleteOwnUser: 'deleteOwnUser',
   deletePlatform: 'deletePlatform',
   deleteTag: 'deleteTag',
   deleteUser: 'deleteUser',
   deleteWatchlistItem: 'deleteWatchlistItem',
+  enableAuthGoogle: 'enableAuthGoogle',
+  enableAuthOidc: 'enableAuthOidc',
+  enableAuthToken: 'enableAuthToken',
   enableDataProviderGhostfolio: 'enableDataProviderGhostfolio',
   enableFearAndGreedIndex: 'enableFearAndGreedIndex',
   enableImport: 'enableImport',
   enableBlog: 'enableBlog',
-  enableSocialLogin: 'enableSocialLogin',
   enableStatistics: 'enableStatistics',
   enableSubscription: 'enableSubscription',
   enableSubscriptionInterstitial: 'enableSubscriptionInterstitial',
@@ -43,16 +46,18 @@ export const permissions = {
   readMarketDataOfMarkets: 'readMarketDataOfMarkets',
   readMarketDataOfOwnAssetProfile: 'readMarketDataOfOwnAssetProfile',
   readPlatforms: 'readPlatforms',
+  readPlatformsWithAccountCount: 'readPlatformsWithAccountCount',
   readTags: 'readTags',
   readWatchlist: 'readWatchlist',
   reportDataGlitch: 'reportDataGlitch',
   syncDemoUserAccount: 'syncDemoUserAccount',
   toggleReadOnlyMode: 'toggleReadOnlyMode',
   updateAccount: 'updateAccount',
+  updateAccess: 'updateAccess',
+  updateActivity: 'updateActivity',
   updateAuthDevice: 'updateAuthDevice',
   updateMarketData: 'updateMarketData',
   updateMarketDataOfOwnAssetProfile: 'updateMarketDataOfOwnAssetProfile',
-  updateOrder: 'updateOrder',
   updateOwnAccessToken: 'updateOwnAccessToken',
   updatePlatform: 'updatePlatform',
   updateTag: 'updateTag',
@@ -70,19 +75,19 @@ export function getPermissions(aRole: Role): string[] {
         permissions.createAccess,
         permissions.createAccount,
         permissions.createAccountBalance,
+        permissions.createActivity,
         permissions.createWatchlistItem,
         permissions.deleteAccountBalance,
         permissions.deleteWatchlistItem,
         permissions.createMarketData,
         permissions.createMarketDataOfOwnAssetProfile,
-        permissions.createOrder,
         permissions.createOwnTag,
         permissions.createPlatform,
         permissions.createTag,
         permissions.deleteAccess,
         permissions.deleteAccount,
+        permissions.deleteActivity,
         permissions.deleteAuthDevice,
-        permissions.deleteOrder,
         permissions.deletePlatform,
         permissions.deleteTag,
         permissions.deleteUser,
@@ -90,13 +95,15 @@ export function getPermissions(aRole: Role): string[] {
         permissions.readMarketData,
         permissions.readMarketDataOfOwnAssetProfile,
         permissions.readPlatforms,
+        permissions.readPlatformsWithAccountCount,
         permissions.readTags,
         permissions.readWatchlist,
         permissions.updateAccount,
+        permissions.updateAccess,
+        permissions.updateActivity,
         permissions.updateAuthDevice,
         permissions.updateMarketData,
         permissions.updateMarketDataOfOwnAssetProfile,
-        permissions.updateOrder,
         permissions.updatePlatform,
         permissions.updateTag,
         permissions.updateUserSettings,
@@ -119,23 +126,25 @@ export function getPermissions(aRole: Role): string[] {
         permissions.createAccess,
         permissions.createAccount,
         permissions.createAccountBalance,
+        permissions.createActivity,
         permissions.createMarketDataOfOwnAssetProfile,
-        permissions.createOrder,
         permissions.createOwnTag,
         permissions.createWatchlistItem,
         permissions.deleteAccess,
         permissions.deleteAccount,
         permissions.deleteAccountBalance,
+        permissions.deleteActivity,
         permissions.deleteAuthDevice,
-        permissions.deleteOrder,
         permissions.deleteWatchlistItem,
         permissions.readAiPrompt,
         permissions.readMarketDataOfOwnAssetProfile,
+        permissions.readPlatforms,
         permissions.readWatchlist,
         permissions.updateAccount,
+        permissions.updateAccess,
+        permissions.updateActivity,
         permissions.updateAuthDevice,
         permissions.updateMarketDataOfOwnAssetProfile,
-        permissions.updateOrder,
         permissions.updateUserSettings,
         permissions.updateViewMode
       ];
@@ -154,7 +163,8 @@ export function filterGlobalPermissions(
   if (aUtmSource === 'ios') {
     return globalPermissions.filter((permission) => {
       return (
-        permission !== permissions.enableSocialLogin &&
+        permission !== permissions.enableAuthGoogle &&
+        permission !== permissions.enableAuthOidc &&
         permission !== permissions.enableSubscription
       );
     });
@@ -197,5 +207,9 @@ export function hasRole(aUser: UserWithSettings, aRole: Role) {
 }
 
 export function isRestrictedView(aUser: UserWithSettings) {
+  if (!aUser) {
+    return true;
+  }
+
   return aUser?.settings?.settings?.isRestrictedView ?? false;
 }

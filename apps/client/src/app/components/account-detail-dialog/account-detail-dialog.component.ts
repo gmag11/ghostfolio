@@ -1,14 +1,11 @@
-import { CreateAccountBalanceDto } from '@ghostfolio/api/app/account-balance/create-account-balance.dto';
-import { Activity } from '@ghostfolio/api/app/order/interfaces/activities.interface';
-import { GfDialogFooterComponent } from '@ghostfolio/client/components/dialog-footer/dialog-footer.component';
-import { GfDialogHeaderComponent } from '@ghostfolio/client/components/dialog-header/dialog-header.component';
 import { GfInvestmentChartComponent } from '@ghostfolio/client/components/investment-chart/investment-chart.component';
-import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { NUMERICAL_PRECISION_THRESHOLD_6_FIGURES } from '@ghostfolio/common/config';
+import { CreateAccountBalanceDto } from '@ghostfolio/common/dtos';
 import { DATE_FORMAT, downloadAsFile } from '@ghostfolio/common/helper';
 import {
   AccountBalancesResponse,
+  Activity,
   HistoricalDataItem,
   PortfolioPosition,
   User
@@ -18,7 +15,10 @@ import { internalRoutes } from '@ghostfolio/common/routes/routes';
 import { OrderWithAccount } from '@ghostfolio/common/types';
 import { GfAccountBalancesComponent } from '@ghostfolio/ui/account-balances';
 import { GfActivitiesTableComponent } from '@ghostfolio/ui/activities-table';
+import { GfDialogFooterComponent } from '@ghostfolio/ui/dialog-footer';
+import { GfDialogHeaderComponent } from '@ghostfolio/ui/dialog-header';
 import { GfHoldingsTableComponent } from '@ghostfolio/ui/holdings-table';
+import { DataService } from '@ghostfolio/ui/services';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
 import { CommonModule } from '@angular/common';
@@ -26,11 +26,12 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  DestroyRef,
   Inject,
-  OnDestroy,
   OnInit
 } from '@angular/core';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatDialogModule } from '@angular/material/dialog';
@@ -43,14 +44,13 @@ import { Big } from 'big.js';
 import { format, parseISO } from 'date-fns';
 import { addIcons } from 'ionicons';
 import {
+  albumsOutline,
   cashOutline,
-  swapVerticalOutline,
-  walletOutline
+  swapVerticalOutline
 } from 'ionicons/icons';
 import { isNumber } from 'lodash';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
-import { forkJoin, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { forkJoin } from 'rxjs';
 
 import { AccountDetailDialogParams } from './interfaces/interfaces';
 
@@ -77,9 +77,10 @@ import { AccountDetailDialogParams } from './interfaces/interfaces';
   styleUrls: ['./account-detail-dialog.component.scss'],
   templateUrl: 'account-detail-dialog.html'
 })
-export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
+export class GfAccountDetailDialogComponent implements OnInit {
   public accountBalances: AccountBalancesResponse['balances'];
   public activities: OrderWithAccount[];
+  public activitiesCount: number;
   public balance: number;
   public balancePrecision = 2;
   public currency: string;
@@ -100,22 +101,20 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
   public sortColumn = 'date';
   public sortDirection: SortDirection = 'desc';
   public totalItems: number;
-  public transactionCount: number;
   public user: User;
   public valueInBaseCurrency: number;
-
-  private unsubscribeSubject = new Subject<void>();
 
   public constructor(
     private changeDetectorRef: ChangeDetectorRef,
     @Inject(MAT_DIALOG_DATA) public data: AccountDetailDialogParams,
     private dataService: DataService,
+    private destroyRef: DestroyRef,
     public dialogRef: MatDialogRef<GfAccountDetailDialogComponent>,
     private router: Router,
     private userService: UserService
   ) {
     this.userService.stateChanged
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((state) => {
         if (state?.user) {
           this.user = state.user;
@@ -129,7 +128,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
         }
       });
 
-    addIcons({ cashOutline, swapVerticalOutline, walletOutline });
+    addIcons({ albumsOutline, cashOutline, swapVerticalOutline });
   }
 
   public ngOnInit() {
@@ -154,7 +153,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
   public onAddAccountBalance(accountBalance: CreateAccountBalanceDto) {
     this.dataService
       .postAccountBalance(accountBalance)
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.initialize();
       });
@@ -163,7 +162,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
   public onDeleteAccountBalance(aId: string) {
     this.dataService
       .deleteAccountBalance(aId)
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
         this.initialize();
       });
@@ -176,7 +175,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
 
     this.dataService
       .fetchExport({ activityIds })
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((data) => {
         downloadAsFile({
           content: data,
@@ -212,19 +211,20 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
   private fetchAccount() {
     this.dataService
       .fetchAccount(this.data.accountId)
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(
         ({
+          activitiesCount,
           balance,
           currency,
           dividendInBaseCurrency,
           interestInBaseCurrency,
           name,
           platform,
-          transactionCount,
           value,
           valueInBaseCurrency
         }) => {
+          this.activitiesCount = activitiesCount;
           this.balance = balance;
 
           if (
@@ -270,7 +270,6 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
 
           this.name = name;
           this.platformName = platform?.name ?? '-';
-          this.transactionCount = transactionCount;
           this.valueInBaseCurrency = valueInBaseCurrency;
 
           this.changeDetectorRef.markForCheck();
@@ -287,7 +286,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
         sortColumn: this.sortColumn,
         sortDirection: this.sortDirection
       })
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ activities, count }) => {
         this.dataSource = new MatTableDataSource(activities);
         this.totalItems = count;
@@ -304,7 +303,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
     forkJoin({
       accountBalances: this.dataService
         .fetchAccountBalances(this.data.accountId)
-        .pipe(takeUntil(this.unsubscribeSubject)),
+        .pipe(takeUntilDestroyed(this.destroyRef)),
       portfolioPerformance: this.dataService
         .fetchPortfolioPerformance({
           filters: [
@@ -317,7 +316,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
           withExcludedAccounts: true,
           withItems: true
         })
-        .pipe(takeUntil(this.unsubscribeSubject))
+        .pipe(takeUntilDestroyed(this.destroyRef))
     }).subscribe({
       error: () => {
         this.isLoadingChart = false;
@@ -360,7 +359,7 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
           }
         ]
       })
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ holdings }) => {
         this.holdings = holdings;
 
@@ -373,10 +372,5 @@ export class GfAccountDetailDialogComponent implements OnDestroy, OnInit {
     this.fetchActivities();
     this.fetchChart();
     this.fetchPortfolioHoldings();
-  }
-
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
   }
 }

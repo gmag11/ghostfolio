@@ -1,3 +1,4 @@
+import { FireWealth } from './fire-wealth.interface';
 import { PortfolioPerformance } from './portfolio-performance.interface';
 
 export interface PortfolioSummary extends PortfolioPerformance {
@@ -5,7 +6,7 @@ export interface PortfolioSummary extends PortfolioPerformance {
   annualizedPerformancePercent: number;
   annualizedPerformancePercentWithCurrencyEffect: number;
   cash: number;
-  committedFunds: number;
+  dateOfFirstActivity: Date;
   dividendInBaseCurrency: number;
   emergencyFund: {
     assets: number;
@@ -16,11 +17,11 @@ export interface PortfolioSummary extends PortfolioPerformance {
   fees: number;
   filteredValueInBaseCurrency?: number;
   filteredValueInPercentage?: number;
-  fireWealth: number;
+  fireWealth: FireWealth;
   grossPerformance: number;
   grossPerformanceWithCurrencyEffect: number;
-  interest: number;
-  liabilities: number;
+  interestInBaseCurrency: number;
+  liabilitiesInBaseCurrency: number;
   totalBuy: number;
   totalSell: number;
   totalValueInBaseCurrency?: number;

@@ -1,6 +1,15 @@
 <div class="container">
   <div class="row">
     <div class="col">
+      @if (hasPermissionToAccessBullBoard) {
+        <div class="d-flex justify-content-end mb-3">
+          <button mat-stroked-button (click)="onOpenBullBoard()">
+            <span><ng-container i18n>Overview</ng-container></span>
+            <ion-icon class="ml-2" name="open-outline" />
+          </button>
+        </div>
+      }
+
       <form class="align-items-center d-flex" [formGroup]="filterForm">
         <mat-form-field appearance="outline" class="w-100 without-hint">
           <mat-select formControlName="status">
@@ -16,9 +25,21 @@
           </mat-select>
         </mat-form-field>
       </form>
-      <table class="gf-table w-100" mat-table [dataSource]="dataSource">
+      <table
+        class="gf-table w-100"
+        mat-table
+        matSort
+        matSortActive="created"
+        matSortDirection="desc"
+        [dataSource]="dataSource"
+      >
         <ng-container matColumnDef="index">
-          <th *matHeaderCellDef class="px-1 py-2 text-right" mat-header-cell>
+          <th
+            *matHeaderCellDef
+            class="px-1 py-2 text-right"
+            mat-header-cell
+            mat-sort-header="id"
+          >
             <ng-container i18n>Job ID</ng-container>
           </th>
           <td *matCellDef="let element" class="px-1 py-2 text-right" mat-cell>
@@ -27,7 +48,12 @@
         </ng-container>
 
         <ng-container matColumnDef="type">
-          <th *matHeaderCellDef class="px-1 py-2" mat-header-cell>
+          <th
+            *matHeaderCellDef
+            class="px-1 py-2"
+            mat-header-cell
+            mat-sort-header="name"
+          >
             <ng-container i18n>Type</ng-container>
           </th>
           <td *matCellDef="let element" class="px-1 py-2" mat-cell>
@@ -42,7 +68,12 @@
         </ng-container>
 
         <ng-container matColumnDef="symbol">
-          <th *matHeaderCellDef class="px-1 py-2" mat-header-cell>
+          <th
+            *matHeaderCellDef
+            class="px-1 py-2"
+            mat-header-cell
+            mat-sort-header="data.symbol"
+          >
             <ng-container i18n>Symbol</ng-container>
           </th>
           <td *matCellDef="let element" class="px-1 py-2" mat-cell>
@@ -51,7 +82,12 @@
         </ng-container>
 
         <ng-container matColumnDef="dataSource">
-          <th *matHeaderCellDef class="px-1 py-2" mat-header-cell>
+          <th
+            *matHeaderCellDef
+            class="px-1 py-2"
+            mat-header-cell
+            mat-sort-header="data.dataSource"
+          >
             <ng-container i18n>Data Source</ng-container>
           </th>
           <td *matCellDef="let element" class="px-1 py-2" mat-cell>
@@ -60,7 +96,12 @@
         </ng-container>
 
         <ng-container matColumnDef="priority">
-          <th *matHeaderCellDef class="px-1 py-2" mat-header-cell>
+          <th
+            *matHeaderCellDef
+            class="px-1 py-2"
+            mat-header-cell
+            mat-sort-header="opts.priority"
+          >
             <ng-container i18n>Priority</ng-container>
           </th>
           <td *matCellDef="let element" class="px-1 py-2" mat-cell>
@@ -79,7 +120,12 @@
         </ng-container>
 
         <ng-container matColumnDef="attempts">
-          <th *matHeaderCellDef class="px-1 py-2 text-right" mat-header-cell>
+          <th
+            *matHeaderCellDef
+            class="px-1 py-2 text-right"
+            mat-header-cell
+            mat-sort-header="attemptsMade"
+          >
             <ng-container i18n>Attempts</ng-container>
           </th>
           <td *matCellDef="let element" class="px-1 py-2 text-right" mat-cell>
@@ -88,7 +134,12 @@
         </ng-container>
 
         <ng-container matColumnDef="created">
-          <th *matHeaderCellDef class="px-1 py-2" mat-header-cell>
+          <th
+            *matHeaderCellDef
+            class="px-1 py-2"
+            mat-header-cell
+            mat-sort-header="timestamp"
+          >
             <ng-container i18n>Created</ng-container>
           </th>
           <td *matCellDef="let element" class="px-1 py-2" mat-cell>
@@ -163,14 +214,16 @@
             </button>
             <mat-menu #jobActionsMenu="matMenu" xPosition="before">
               <button mat-menu-item (click)="onViewData(element.data)">
-                <ng-container i18n>View Data</ng-container>
+                <span><ng-container i18n>View Data</ng-container>...</span>
               </button>
               <button
                 mat-menu-item
                 [disabled]="element.stacktrace?.length <= 0"
                 (click)="onViewStacktrace(element.stacktrace)"
               >
-                <ng-container i18n>View Stacktrace</ng-container>
+                <span
+                  ><ng-container i18n>View Stacktrace</ng-container>...</span
+                >
               </button>
               <button mat-menu-item (click)="onExecuteJob(element.id)">
                 <ng-container i18n>Execute Job</ng-container>

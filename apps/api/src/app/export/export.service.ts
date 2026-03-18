@@ -1,9 +1,13 @@
 import { AccountService } from '@ghostfolio/api/app/account/account.service';
-import { OrderService } from '@ghostfolio/api/app/order/order.service';
+import { ActivitiesService } from '@ghostfolio/api/app/activities/activities.service';
 import { environment } from '@ghostfolio/api/environments/environment';
 import { MarketDataService } from '@ghostfolio/api/services/market-data/market-data.service';
 import { TagService } from '@ghostfolio/api/services/tag/tag.service';
-import { Filter, Export } from '@ghostfolio/common/interfaces';
+import {
+  ExportResponse,
+  Filter,
+  UserSettings
+} from '@ghostfolio/common/interfaces';
 
 import { Injectable } from '@nestjs/common';
 import { Platform, Prisma } from '@prisma/client';
@@ -13,34 +17,34 @@ import { groupBy, uniqBy } from 'lodash';
 export class ExportService {
   public constructor(
     private readonly accountService: AccountService,
+    private readonly activitiesService: ActivitiesService,
     private readonly marketDataService: MarketDataService,
-    private readonly orderService: OrderService,
     private readonly tagService: TagService
   ) {}
 
   public async export({
     activityIds,
     filters,
-    userCurrency,
-    userId
+    userId,
+    userSettings
   }: {
     activityIds?: string[];
     filters?: Filter[];
-    userCurrency: string;
     userId: string;
-  }): Promise<Export> {
+    userSettings: UserSettings;
+  }): Promise<ExportResponse> {
     const { ACCOUNT: filtersByAccount } = groupBy(filters, ({ type }) => {
       return type;
     });
     const platformsMap: { [platformId: string]: Platform } = {};
 
-    let { activities } = await this.orderService.getOrders({
+    let { activities } = await this.activitiesService.getActivities({
       filters,
-      userCurrency,
       userId,
       includeDrafts: true,
       sortColumn: 'date',
       sortDirection: 'asc',
+      userCurrency: userSettings?.baseCurrency,
       withExcludedAccountsAndActivities: true
     });
 
@@ -178,10 +182,8 @@ export class ExportService {
           isActive,
           isin,
           name,
-          scraperConfiguration,
           sectors,
           symbol,
-          symbolMapping,
           url
         }) => {
           return {
@@ -200,11 +202,8 @@ export class ExportService {
             isin,
             marketData: marketDataByAssetProfile[id],
             name,
-            scraperConfiguration:
-              scraperConfiguration as unknown as Prisma.JsonArray,
             sectors: sectors as unknown as Prisma.JsonArray,
             symbol,
-            symbolMapping,
             url
           };
         }
@@ -244,7 +243,10 @@ export class ExportService {
         }
       ),
       user: {
-        settings: { currency: userCurrency }
+        settings: {
+          currency: userSettings?.baseCurrency,
+          performanceCalculationType: userSettings?.performanceCalculationType
+        }
       }
     };
   }

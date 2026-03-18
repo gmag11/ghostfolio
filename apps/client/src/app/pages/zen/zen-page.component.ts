@@ -2,38 +2,40 @@ import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { TabConfiguration, User } from '@ghostfolio/common/interfaces';
 import { internalRoutes } from '@ghostfolio/common/routes/routes';
 
-import { CommonModule } from '@angular/common';
-import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  OnInit
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatTabsModule } from '@angular/material/tabs';
 import { RouterModule } from '@angular/router';
 import { IonIcon } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { analyticsOutline, walletOutline } from 'ionicons/icons';
+import { albumsOutline, analyticsOutline } from 'ionicons/icons';
 import { DeviceDetectorService } from 'ngx-device-detector';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 
 @Component({
   host: { class: 'page has-tabs' },
-  imports: [CommonModule, IonIcon, MatTabsModule, RouterModule],
+  imports: [IonIcon, MatTabsModule, RouterModule],
   selector: 'gf-zen-page',
   styleUrls: ['./zen-page.scss'],
   templateUrl: './zen-page.html'
 })
-export class GfZenPageComponent implements OnDestroy, OnInit {
+export class GfZenPageComponent implements OnInit {
   public deviceType: string;
   public tabs: TabConfiguration[] = [];
   public user: User;
 
-  private unsubscribeSubject = new Subject<void>();
-
   public constructor(
     private changeDetectorRef: ChangeDetectorRef,
+    private destroyRef: DestroyRef,
     private deviceService: DeviceDetectorService,
     private userService: UserService
   ) {
     this.userService.stateChanged
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((state) => {
         if (state?.user) {
           this.tabs = [
@@ -43,7 +45,7 @@ export class GfZenPageComponent implements OnDestroy, OnInit {
               routerLink: internalRoutes.zen.routerLink
             },
             {
-              iconName: 'wallet-outline',
+              iconName: 'albums-outline',
               label: internalRoutes.zen.subRoutes.holdings.title,
               routerLink: internalRoutes.zen.subRoutes.holdings.routerLink
             }
@@ -54,15 +56,10 @@ export class GfZenPageComponent implements OnDestroy, OnInit {
         }
       });
 
-    addIcons({ analyticsOutline, walletOutline });
+    addIcons({ albumsOutline, analyticsOutline });
   }
 
   public ngOnInit() {
     this.deviceType = this.deviceService.getDeviceInfo().deviceType;
-  }
-
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
   }
 }

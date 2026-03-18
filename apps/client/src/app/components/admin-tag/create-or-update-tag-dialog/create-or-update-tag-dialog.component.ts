@@ -1,13 +1,7 @@
-import { CreateTagDto } from '@ghostfolio/api/app/endpoints/tags/create-tag.dto';
-import { UpdateTagDto } from '@ghostfolio/api/app/endpoints/tags/update-tag.dto';
-import { validateObjectForForm } from '@ghostfolio/client/util/form.util';
+import { CreateTagDto, UpdateTagDto } from '@ghostfolio/common/dtos';
+import { validateObjectForForm } from '@ghostfolio/common/utils';
 
-import {
-  ChangeDetectionStrategy,
-  Component,
-  Inject,
-  OnDestroy
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -22,7 +16,6 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { Subject } from 'rxjs';
 
 import { CreateOrUpdateTagDialogParams } from './interfaces/interfaces';
 
@@ -41,10 +34,8 @@ import { CreateOrUpdateTagDialogParams } from './interfaces/interfaces';
   styleUrls: ['./create-or-update-tag-dialog.scss'],
   templateUrl: 'create-or-update-tag-dialog.html'
 })
-export class GfCreateOrUpdateTagDialogComponent implements OnDestroy {
+export class GfCreateOrUpdateTagDialogComponent {
   public tagForm: FormGroup;
-
-  private unsubscribeSubject = new Subject<void>();
 
   public constructor(
     @Inject(MAT_DIALOG_DATA) public data: CreateOrUpdateTagDialogParams,
@@ -85,10 +76,5 @@ export class GfCreateOrUpdateTagDialogComponent implements OnDestroy {
     } catch (error) {
       console.error(error);
     }
-  }
-
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
   }
 }

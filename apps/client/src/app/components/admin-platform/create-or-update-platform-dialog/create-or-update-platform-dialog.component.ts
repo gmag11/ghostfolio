@@ -1,14 +1,8 @@
-import { CreatePlatformDto } from '@ghostfolio/api/app/platform/create-platform.dto';
-import { UpdatePlatformDto } from '@ghostfolio/api/app/platform/update-platform.dto';
-import { validateObjectForForm } from '@ghostfolio/client/util/form.util';
+import { CreatePlatformDto, UpdatePlatformDto } from '@ghostfolio/common/dtos';
+import { validateObjectForForm } from '@ghostfolio/common/utils';
 import { GfEntityLogoComponent } from '@ghostfolio/ui/entity-logo';
 
-import {
-  ChangeDetectionStrategy,
-  Component,
-  Inject,
-  OnDestroy
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -24,7 +18,6 @@ import {
 } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { Subject } from 'rxjs';
 
 import { CreateOrUpdatePlatformDialogParams } from './interfaces/interfaces';
 
@@ -44,10 +37,8 @@ import { CreateOrUpdatePlatformDialogParams } from './interfaces/interfaces';
   styleUrls: ['./create-or-update-platform-dialog.scss'],
   templateUrl: 'create-or-update-platform-dialog.html'
 })
-export class GfCreateOrUpdatePlatformDialogComponent implements OnDestroy {
+export class GfCreateOrUpdatePlatformDialogComponent {
   public platformForm: FormGroup;
-
-  private unsubscribeSubject = new Subject<void>();
 
   public constructor(
     @Inject(MAT_DIALOG_DATA) public data: CreateOrUpdatePlatformDialogParams,
@@ -90,10 +81,5 @@ export class GfCreateOrUpdatePlatformDialogComponent implements OnDestroy {
     } catch (error) {
       console.error(error);
     }
-  }
-
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
   }
 }

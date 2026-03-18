@@ -1,3 +1,5 @@
+import { ExportResponse } from '@ghostfolio/common/interfaces';
+
 import { readFileSync } from 'node:fs';
 
 export const activityDummyData = {
@@ -37,6 +39,6 @@ export const userDummyData = {
   id: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
 };
 
-export function loadActivityExportFile(filePath: string) {
-  return JSON.parse(readFileSync(filePath, 'utf8')).activities;
+export function loadExportFile(filePath: string): ExportResponse {
+  return JSON.parse(readFileSync(filePath, 'utf8'));
 }

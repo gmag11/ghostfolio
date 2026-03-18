@@ -1,5 +1,5 @@
 import { AccountBalanceService } from '@ghostfolio/api/app/account-balance/account-balance.service';
-import { OrderService } from '@ghostfolio/api/app/order/order.service';
+import { ActivitiesService } from '@ghostfolio/api/app/activities/activities.service';
 import { PortfolioCalculatorFactory } from '@ghostfolio/api/app/portfolio/calculator/portfolio-calculator.factory';
 import { PortfolioSnapshotValue } from '@ghostfolio/api/app/portfolio/interfaces/snapshot-value.interface';
 import { RedisCacheService } from '@ghostfolio/api/app/redis-cache/redis-cache.service';
@@ -16,16 +16,16 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { addMilliseconds } from 'date-fns';
 
-import { IPortfolioSnapshotQueueJob } from './interfaces/portfolio-snapshot-queue-job.interface';
+import { PortfolioSnapshotQueueJob } from './interfaces/portfolio-snapshot-queue-job.interface';
 
 @Injectable()
 @Processor(PORTFOLIO_SNAPSHOT_COMPUTATION_QUEUE)
 export class PortfolioSnapshotProcessor {
   public constructor(
     private readonly accountBalanceService: AccountBalanceService,
+    private readonly activitiesService: ActivitiesService,
     private readonly calculatorFactory: PortfolioCalculatorFactory,
     private readonly configurationService: ConfigurationService,
-    private readonly orderService: OrderService,
     private readonly redisCacheService: RedisCacheService
   ) {}
 
@@ -37,9 +37,7 @@ export class PortfolioSnapshotProcessor {
     ),
     name: PORTFOLIO_SNAPSHOT_PROCESS_JOB_NAME
   })
-  public async calculatePortfolioSnapshot(
-    job: Job<IPortfolioSnapshotQueueJob>
-  ) {
+  public async calculatePortfolioSnapshot(job: Job<PortfolioSnapshotQueueJob>) {
     try {
       const startTime = performance.now();
 
@@ -49,10 +47,11 @@ export class PortfolioSnapshotProcessor {
       );
 
       const { activities } =
-        await this.orderService.getOrdersForPortfolioCalculator({
+        await this.activitiesService.getActivitiesForPortfolioCalculator({
           filters: job.data.filters,
           userCurrency: job.data.userCurrency,
-          userId: job.data.userId
+          userId: job.data.userId,
+          withCash: true
         });
 
       const accountBalanceItems =

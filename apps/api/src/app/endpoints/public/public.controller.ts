@@ -1,6 +1,8 @@
 import { AccessService } from '@ghostfolio/api/app/access/access.service';
+import { ActivitiesService } from '@ghostfolio/api/app/activities/activities.service';
 import { PortfolioService } from '@ghostfolio/api/app/portfolio/portfolio.service';
 import { UserService } from '@ghostfolio/api/app/user/user.service';
+import { RedactValuesInResponseInterceptor } from '@ghostfolio/api/interceptors/redact-values-in-response/redact-values-in-response.interceptor';
 import { TransformDataSourceInResponseInterceptor } from '@ghostfolio/api/interceptors/transform-data-source-in-response/transform-data-source-in-response.interceptor';
 import { ConfigurationService } from '@ghostfolio/api/services/configuration/configuration.service';
 import { ExchangeRateDataService } from '@ghostfolio/api/services/exchange-rate-data/exchange-rate-data.service';
@@ -18,6 +20,7 @@ import {
   UseInterceptors
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
+import { Type as ActivityType } from '@prisma/client';
 import { Big } from 'big.js';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
@@ -25,6 +28,7 @@ import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 export class PublicController {
   public constructor(
     private readonly accessService: AccessService,
+    private readonly activitiesService: ActivitiesService,
     private readonly configurationService: ConfigurationService,
     private readonly exchangeRateDataService: ExchangeRateDataService,
     private readonly portfolioService: PortfolioService,
@@ -33,9 +37,10 @@ export class PublicController {
   ) {}
 
   @Get(':accessId/portfolio')
+  @UseInterceptors(RedactValuesInResponseInterceptor)
   @UseInterceptors(TransformDataSourceInResponseInterceptor)
   public async getPublicPortfolio(
-    @Param('accessId') accessId
+    @Param('accessId') accessId: string
   ): Promise<PublicPortfolioResponse> {
     const access = await this.accessService.access({ id: accessId });
 
@@ -76,6 +81,47 @@ export class PublicController {
       })
     ]);
 
+    const { activities } = await this.activitiesService.getActivities({
+      sortColumn: 'date',
+      sortDirection: 'desc',
+      take: 10,
+      types: [ActivityType.BUY, ActivityType.SELL],
+      userCurrency: user.settings?.settings.baseCurrency ?? DEFAULT_CURRENCY,
+      userId: user.id,
+      withExcludedAccountsAndActivities: false
+    });
+
+    // Experimental
+    const latestActivities = this.configurationService.get(
+      'ENABLE_FEATURE_SUBSCRIPTION'
+    )
+      ? []
+      : activities.map(
+          ({
+            currency,
+            date,
+            fee,
+            quantity,
+            SymbolProfile,
+            type,
+            unitPrice,
+            value,
+            valueInBaseCurrency
+          }) => {
+            return {
+              currency,
+              date,
+              fee,
+              quantity,
+              SymbolProfile,
+              type,
+              unitPrice,
+              value,
+              valueInBaseCurrency
+            };
+          }
+        );
+
     Object.values(markets ?? {}).forEach((market) => {
       delete market.valueInBaseCurrency;
     });
@@ -83,6 +129,7 @@ export class PublicController {
     const publicPortfolioResponse: PublicPortfolioResponse = {
       createdAt,
       hasDetails,
+      latestActivities,
       markets,
       alias: access.alias,
       holdings: {},
@@ -120,6 +167,7 @@ export class PublicController {
         allocationInPercentage:
           portfolioPosition.valueInBaseCurrency / totalValue,
         assetClass: hasDetails ? portfolioPosition.assetClass : undefined,
+        assetProfile: hasDetails ? portfolioPosition.assetProfile : undefined,
         countries: hasDetails ? portfolioPosition.countries : [],
         currency: hasDetails ? portfolioPosition.currency : undefined,
         dataSource: portfolioPosition.dataSource,

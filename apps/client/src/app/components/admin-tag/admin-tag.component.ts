@@ -1,18 +1,21 @@
-import { CreateTagDto } from '@ghostfolio/api/app/endpoints/tags/create-tag.dto';
-import { UpdateTagDto } from '@ghostfolio/api/app/endpoints/tags/update-tag.dto';
-import { ConfirmationDialogType } from '@ghostfolio/client/core/notification/confirmation-dialog/confirmation-dialog.type';
-import { NotificationService } from '@ghostfolio/client/core/notification/notification.service';
-import { DataService } from '@ghostfolio/client/services/data.service';
 import { UserService } from '@ghostfolio/client/services/user/user.service';
+import { CreateTagDto, UpdateTagDto } from '@ghostfolio/common/dtos';
+import { ConfirmationDialogType } from '@ghostfolio/common/enums';
+import { getLocale } from '@ghostfolio/common/helper';
+import { NotificationService } from '@ghostfolio/ui/notifications';
+import { DataService } from '@ghostfolio/ui/services';
+import { GfValueComponent } from '@ghostfolio/ui/value';
 
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  OnDestroy,
+  DestroyRef,
+  Input,
   OnInit,
   ViewChild
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
@@ -29,13 +32,14 @@ import {
 } from 'ionicons/icons';
 import { get } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
-import { Subject, takeUntil } from 'rxjs';
 
 import { GfCreateOrUpdateTagDialogComponent } from './create-or-update-tag-dialog/create-or-update-tag-dialog.component';
+import { CreateOrUpdateTagDialogParams } from './create-or-update-tag-dialog/interfaces/interfaces';
 
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    GfValueComponent,
     IonIcon,
     MatButtonModule,
     MatMenuModule,
@@ -47,7 +51,9 @@ import { GfCreateOrUpdateTagDialogComponent } from './create-or-update-tag-dialo
   styleUrls: ['./admin-tag.component.scss'],
   templateUrl: './admin-tag.component.html'
 })
-export class GfAdminTagComponent implements OnInit, OnDestroy {
+export class GfAdminTagComponent implements OnInit {
+  @Input() locale = getLocale();
+
   @ViewChild(MatSort) sort: MatSort;
 
   public dataSource = new MatTableDataSource<Tag>();
@@ -55,11 +61,10 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
   public displayedColumns = ['name', 'userId', 'activities', 'actions'];
   public tags: Tag[];
 
-  private unsubscribeSubject = new Subject<void>();
-
   public constructor(
     private changeDetectorRef: ChangeDetectorRef,
     private dataService: DataService,
+    private destroyRef: DestroyRef,
     private deviceService: DeviceDetectorService,
     private dialog: MatDialog,
     private notificationService: NotificationService,
@@ -68,7 +73,7 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
     private userService: UserService
   ) {
     this.route.queryParams
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
         if (params['createTagDialog']) {
           this.openCreateTagDialog();
@@ -110,20 +115,15 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
     });
   }
 
-  public ngOnDestroy() {
-    this.unsubscribeSubject.next();
-    this.unsubscribeSubject.complete();
-  }
-
   private deleteTag(aId: string) {
     this.dataService
       .deleteTag(aId)
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.userService
             .get(true)
-            .pipe(takeUntil(this.unsubscribeSubject))
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe();
 
           this.fetchTags();
@@ -134,7 +134,7 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
   private fetchTags() {
     this.dataService
       .fetchTags()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((tags) => {
         this.tags = tags;
 
@@ -149,9 +149,13 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
   }
 
   private openCreateTagDialog() {
-    const dialogRef = this.dialog.open(GfCreateOrUpdateTagDialogComponent, {
+    const dialogRef = this.dialog.open<
+      GfCreateOrUpdateTagDialogComponent,
+      CreateOrUpdateTagDialogParams
+    >(GfCreateOrUpdateTagDialogComponent, {
       data: {
         tag: {
+          id: null,
           name: null
         }
       },
@@ -161,17 +165,17 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
 
     dialogRef
       .afterClosed()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((tag: CreateTagDto | null) => {
         if (tag) {
           this.dataService
             .postTag(tag)
-            .pipe(takeUntil(this.unsubscribeSubject))
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               next: () => {
                 this.userService
                   .get(true)
-                  .pipe(takeUntil(this.unsubscribeSubject))
+                  .pipe(takeUntilDestroyed(this.destroyRef))
                   .subscribe();
 
                 this.fetchTags();
@@ -183,8 +187,11 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
       });
   }
 
-  private openUpdateTagDialog({ id, name }) {
-    const dialogRef = this.dialog.open(GfCreateOrUpdateTagDialogComponent, {
+  private openUpdateTagDialog({ id, name }: { id: string; name: string }) {
+    const dialogRef = this.dialog.open<
+      GfCreateOrUpdateTagDialogComponent,
+      CreateOrUpdateTagDialogParams
+    >(GfCreateOrUpdateTagDialogComponent, {
       data: {
         tag: {
           id,
@@ -197,17 +204,17 @@ export class GfAdminTagComponent implements OnInit, OnDestroy {
 
     dialogRef
       .afterClosed()
-      .pipe(takeUntil(this.unsubscribeSubject))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((tag: UpdateTagDto | null) => {
         if (tag) {
           this.dataService
             .putTag(tag)
-            .pipe(takeUntil(this.unsubscribeSubject))
+            .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe({
               next: () => {
                 this.userService
                   .get(true)
-                  .pipe(takeUntil(this.unsubscribeSubject))
+                  .pipe(takeUntilDestroyed(this.destroyRef))
                   .subscribe();
 
                 this.fetchTags();
