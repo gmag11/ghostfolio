@@ -21,7 +21,7 @@
     <mat-menu #activitiesMenu="matMenu" class="no-max-width" xPosition="before">
       <button
         mat-menu-item
-        [disabled]="dataSource?.data.length === 0"
+        [disabled]="dataSource()?.data.length === 0"
         (click)="onImportDividends()"
       >
         <span class="align-items-center d-flex">
@@ -33,7 +33,7 @@
         <button
           class="align-items-center d-flex"
           mat-menu-item
-          [disabled]="dataSource?.data.length === 0"
+          [disabled]="dataSource()?.data.length === 0"
           (click)="onExport()"
         >
           <span class="align-items-center d-flex">
@@ -60,7 +60,7 @@
         class="align-items-center d-flex"
         mat-menu-item
         [disabled]="
-          dataSource?.data.length === 0 || !hasPermissionToDeleteActivity
+          dataSource()?.data.length === 0 || !hasPermissionToDeleteActivity
         "
         (click)="onDeleteActivities()"
       >
@@ -78,7 +78,7 @@
     class="gf-table w-100"
     mat-table
     matSort
-    [dataSource]="dataSource"
+    [dataSource]="dataSource()"
     [matSortActive]="sortColumn"
     [matSortDirection]="sortDirection"
     [matSortDisabled]="sortDisabled"
@@ -177,7 +177,7 @@
             [deviceType]="deviceType"
             [isDate]="true"
             [locale]="locale"
-            [value]="isLoading ? undefined : element.date"
+            [value]="isLoading() ? undefined : element.date"
           />
         </div>
       </td>
@@ -197,7 +197,7 @@
           <gf-value
             [isCurrency]="true"
             [locale]="locale"
-            [value]="isLoading ? undefined : element.quantity"
+            [value]="isLoading() ? undefined : element.quantity"
           />
         </div>
       </td>
@@ -217,7 +217,7 @@
           <gf-value
             [isCurrency]="true"
             [locale]="locale"
-            [value]="isLoading ? undefined : element.unitPrice"
+            [value]="isLoading() ? undefined : element.unitPrice"
           />
         </div>
       </td>
@@ -241,7 +241,7 @@
           <gf-value
             [isCurrency]="true"
             [locale]="locale"
-            [value]="isLoading ? undefined : element.fee"
+            [value]="isLoading() ? undefined : element.fee"
           />
         </div>
       </td>
@@ -256,7 +256,7 @@
           <gf-value
             [isCurrency]="true"
             [locale]="locale"
-            [value]="isLoading ? undefined : element.value"
+            [value]="isLoading() ? undefined : element.value"
           />
         </div>
       </td>
@@ -284,7 +284,7 @@
           <gf-value
             [isCurrency]="true"
             [locale]="locale"
-            [value]="isLoading ? undefined : element.valueInBaseCurrency"
+            [value]="isLoading() ? undefined : element.valueInBaseCurrency"
           />
         </div>
       </td>
@@ -368,7 +368,7 @@
           @if (hasPermissionToCreateActivity) {
             <button
               mat-menu-item
-              [disabled]="dataSource?.data.length === 0"
+              [disabled]="dataSource()?.data.length === 0"
               (click)="onImportDividends()"
             >
               <span class="align-items-center d-flex">
@@ -383,7 +383,7 @@
             <button
               class="align-items-center d-flex"
               mat-menu-item
-              [disabled]="dataSource?.data.length === 0"
+              [disabled]="dataSource()?.data.length === 0"
               (click)="onExport()"
             >
               <span class="align-items-center d-flex">
@@ -468,9 +468,9 @@
       </td>
     </ng-container>
 
-    <tr *matHeaderRowDef="displayedColumns" mat-header-row></tr>
+    <tr *matHeaderRowDef="displayedColumns()" mat-header-row></tr>
     <tr
-      *matRowDef="let row; columns: displayedColumns"
+      *matRowDef="let row; columns: displayedColumns()"
       mat-row
       [ngClass]="{
         'cursor-pointer': canClickActivity(row)
@@ -480,7 +480,7 @@
   </table>
 </div>
 
-@if (isLoading) {
+@if (isLoading()) {
   <ngx-skeleton-loader
     animation="pulse"
     class="px-4 py-3"
@@ -494,7 +494,7 @@
 <mat-paginator
   [length]="totalItems"
   [ngClass]="{
-    'd-none': (isLoading && !totalItems) || totalItems <= pageSize
+    'd-none': (isLoading() && !totalItems) || totalItems <= pageSize
   }"
   [pageIndex]="pageIndex"
   [pageSize]="pageSize"
@@ -504,9 +504,9 @@
 
 @if (
   !hasActivities &&
-  dataSource?.data.length === 0 &&
+  dataSource()?.data.length === 0 &&
   hasPermissionToCreateActivity &&
-  !isLoading
+  !isLoading()
 ) {
   <div class="p-3 text-center">
     <gf-no-transactions-info-indicator [hasBorder]="false" />
