@@ -59,6 +59,8 @@ export class GfPublicPageComponent implements OnInit {
   public activitiesPageIndex = 0;
   public activitiesTotalItems = 0;
   protected continents: {
+    [code: string]: { name: string; value: number };
+  };
   protected countries: {
     [code: string]: { name: string; value: number };
   };

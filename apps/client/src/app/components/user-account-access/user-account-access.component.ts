@@ -184,7 +184,7 @@ export class GfUserAccountAccessComponent implements OnInit {
   }
 
   public onUpdateAccess(aId: string) {
-    this.router.navigate([], {
+    void this.router.navigate([], {
       queryParams: { accessId: aId, editDialog: true }
     });
   }
@@ -212,7 +212,7 @@ export class GfUserAccountAccessComponent implements OnInit {
         this.update();
       }
 
-      this.router.navigate(['.'], { relativeTo: this.route });
+      void this.router.navigate(['.'], { relativeTo: this.route });
     });
   }
 
@@ -248,20 +248,22 @@ export class GfUserAccountAccessComponent implements OnInit {
         this.update();
       }
 
-      this.router.navigate(['.'], { relativeTo: this.route });
+      void this.router.navigate(['.'], { relativeTo: this.route });
     });
   }
 
   private update() {
-    this.accessesGet = this.user.access.map(({ alias, id, permissions }) => {
-      return {
-        alias,
-        id,
-        permissions,
-        grantee: $localize`Me`,
-        type: 'PRIVATE'
-      };
-    });
+    this.accessesGet = this.user.access.map(
+      ({ alias, id, permissions: accessPermissions }) => {
+        return {
+          alias,
+          id,
+          permissions: accessPermissions,
+          grantee: $localize`Me`,
+          type: 'PRIVATE'
+        };
+      }
+    );
 
     this.dataService
       .fetchAccesses()
