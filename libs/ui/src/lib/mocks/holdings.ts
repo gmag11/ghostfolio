@@ -44,6 +44,9 @@ export const holdings: PortfolioPosition[] = [
     netPerformanceWithCurrencyEffect: 430,
     quantity: 50,
     tags: [],
+    countries: [],
+    currency: 'USD',
+    dataSource: 'YAHOO',
     valueInBaseCurrency: 12230
   },
   {
@@ -89,6 +92,9 @@ export const holdings: PortfolioPosition[] = [
     netPerformanceWithCurrencyEffect: 225.48257403052068,
     quantity: 20,
     tags: [],
+    countries: [],
+    currency: 'EUR',
+    dataSource: 'YAHOO',
     valueInBaseCurrency: 6763.224181360202
   },
   {
@@ -134,6 +140,9 @@ export const holdings: PortfolioPosition[] = [
     netPerformanceWithCurrencyEffect: -899.99926757812,
     quantity: 100,
     tags: [],
+    countries: [],
+    currency: 'USD',
+    dataSource: 'YAHOO',
     valueInBaseCurrency: 22868
   },
   {
@@ -167,6 +176,9 @@ export const holdings: PortfolioPosition[] = [
     netPerformanceWithCurrencyEffect: -2732.737808972287,
     quantity: 0.5614682,
     tags: [],
+    countries: [],
+    currency: 'USD',
+    dataSource: 'COINGECKO',
     valueInBaseCurrency: 54666.7898248
   },
   {
@@ -212,6 +224,9 @@ export const holdings: PortfolioPosition[] = [
     netPerformanceWithCurrencyEffect: -198.899926757814,
     quantity: 30,
     tags: [],
+    countries: [],
+    currency: 'USD',
+    dataSource: 'YAHOO',
     valueInBaseCurrency: 12252.9
   },
   {
@@ -257,6 +272,9 @@ export const holdings: PortfolioPosition[] = [
     netPerformanceWithCurrencyEffect: -7314.00091552734,
     quantity: 150,
     tags: [],
+    countries: [],
+    currency: 'USD',
+    dataSource: 'YAHOO',
     valueInBaseCurrency: 53376
   },
   {
@@ -302,6 +320,9 @@ export const holdings: PortfolioPosition[] = [
     netPerformanceWithCurrencyEffect: 161.99969482422,
     quantity: 50,
     tags: [],
+    countries: [],
+    currency: 'USD',
+    dataSource: 'YAHOO',
     valueInBaseCurrency: 15092
   }
 ];
