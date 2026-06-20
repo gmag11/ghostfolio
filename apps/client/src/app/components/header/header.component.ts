@@ -215,7 +215,7 @@ export class GfHeaderComponent implements OnChanges {
     );
 
     // Check if we're in the public shared view
-    this.isPublicView = this.currentRoute === 'p';
+    this.isPublicView = this.currentRoute() === 'p';
   }
 
   protected closeAssistant() {

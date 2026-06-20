@@ -108,7 +108,7 @@ export class GfPortfolioFilterFormComponent
     }
 
     // Compare only by symbol to allow selecting holdings regardless of dataSource
-    return option?.symbol === value?.symbol;
+    return option?.assetProfile?.symbol === value?.assetProfile?.symbol;
   }
 
   public ngOnChanges() {

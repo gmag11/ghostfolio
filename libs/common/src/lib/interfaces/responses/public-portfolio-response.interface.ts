@@ -31,22 +31,10 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
       | 'investment'
       | 'marketPrice'
       | 'markets'
-
-      /** @deprecated */
-      | 'name'
       | 'netPerformance'
       | 'netPerformancePercentWithCurrencyEffect'
       | 'netPerformanceWithCurrencyEffect'
       | 'quantity'
-
-      /** @deprecated */
-      | 'sectors'
-
-      /** @deprecated */
-      | 'symbol'
-
-      /** @deprecated */
-      | 'url'
       | 'valueInBaseCurrency'
       | 'valueInPercentage'
     >;

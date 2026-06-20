@@ -540,7 +540,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       },
       {
         // Always send SYMBOL filter to clear it when holding is removed
-        id: filterValue?.holding?.symbol ?? null,
+        id: filterValue?.holding?.assetProfile?.symbol ?? null,
         type: 'SYMBOL'
       }
     ];
@@ -776,7 +776,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
     // When a symbol filter is saved, find any holding with that symbol
     // (ignore dataSource to show all holdings with the same symbol)
     const selectedHolding = symbol
-      ? this.holdings.find((holding) => holding.symbol === symbol)
+      ? this.holdings.find((holding) => holding.assetProfile.symbol === symbol)
       : null;
 
     this.portfolioFilterFormControl.setValue({

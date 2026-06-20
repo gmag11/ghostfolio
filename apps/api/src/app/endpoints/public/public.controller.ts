@@ -302,16 +302,12 @@ export class PublicController {
           investment: portfolioPosition.investment,
           marketPrice: hasDetails ? portfolioPosition.marketPrice : undefined,
           markets: portfolioPosition.markets,
-          name: portfolioPosition.assetProfile.name,
           netPerformance: portfolioPosition.netPerformance,
           netPerformancePercentWithCurrencyEffect:
             portfolioPosition.netPerformancePercentWithCurrencyEffect,
           netPerformanceWithCurrencyEffect:
             portfolioPosition.netPerformanceWithCurrencyEffect,
           quantity: portfolioPosition.quantity,
-          sectors: portfolioPosition.assetProfile.sectors,
-          symbol: portfolioPosition.assetProfile.symbol,
-          url: portfolioPosition.assetProfile.url,
           valueInBaseCurrency: portfolioPosition.valueInBaseCurrency,
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
@@ -335,15 +331,11 @@ export class PublicController {
           investment: undefined,
           marketPrice: hasDetails ? portfolioPosition.marketPrice : undefined,
           markets: hasDetails ? portfolioPosition.markets : undefined,
-          name: portfolioPosition.assetProfile.name,
           netPerformance: undefined,
           netPerformancePercentWithCurrencyEffect:
             portfolioPosition.netPerformancePercentWithCurrencyEffect,
           netPerformanceWithCurrencyEffect: undefined,
           quantity: undefined,
-          sectors: hasDetails ? portfolioPosition.assetProfile.sectors : [],
-          symbol: portfolioPosition.assetProfile.symbol,
-          url: portfolioPosition.assetProfile.url,
           valueInBaseCurrency: undefined,
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
