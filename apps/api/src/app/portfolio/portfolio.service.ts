@@ -608,7 +608,6 @@ export class PortfolioService {
     for (const {
       activitiesCount,
       averagePrice,
-      currency,
       dataSource,
       dateOfFirstActivity,
       dividend,
