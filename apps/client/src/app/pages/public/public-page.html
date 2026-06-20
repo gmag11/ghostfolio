@@ -117,9 +117,9 @@
           <gf-portfolio-proportion-chart
             class="mx-auto"
             [data]="symbols"
-            [isInPercent]="true"
+            [isInPercentage]="true"
             [keys]="['symbol']"
-            [showLabels]="deviceType !== 'mobile'"
+            [showLabels]="deviceType() !== 'mobile'"
           />
           <gf-holdings-table
             [hasPermissionToOpenDetails]="false"
@@ -143,7 +143,7 @@
           <mat-card-content>
             <gf-portfolio-proportion-chart
               [data]="positions"
-              [isInPercent]="true"
+              [isInPercentage]="true"
               [keys]="['currency']"
               [maxItems]="10"
             />
@@ -160,7 +160,7 @@
           <mat-card-content>
             <gf-portfolio-proportion-chart
               [data]="sectors"
-              [isInPercent]="true"
+              [isInPercentage]="true"
               [keys]="['name']"
               [maxItems]="10"
             />
@@ -179,7 +179,7 @@
           <mat-card-content>
             <gf-portfolio-proportion-chart
               [data]="continents"
-              [isInPercent]="true"
+              [isInPercentage]="true"
               [keys]="['name']"
             />
           </mat-card-content>
@@ -199,7 +199,7 @@
               <gf-world-map-chart
                 format="{0}%"
                 [countries]="countries"
-                [isInPercent]="true"
+                [isInPercentage]="true"
               />
             </div>
             <div class="row">
@@ -262,7 +262,7 @@
         <mat-card-content>
           <gf-activities-table
             [dataSource]="latestActivitiesDataSource"
-            [deviceType]="deviceType"
+            [deviceType]="deviceType()"
             [hasPermissionToCreateActivity]="false"
             [hasPermissionToDeleteActivity]="false"
             [hasPermissionToExportActivities]="false"
