@@ -692,6 +692,7 @@ export class PortfolioService {
         assetSubClass: assetProfile.assetSubClass,
         averagePrice: averagePrice?.toNumber(),
         countries: assetProfile.countries,
+        currency: assetProfile.currency,
         dataSource: assetProfile.dataSource,
         dateOfFirstActivity: parseDate(dateOfFirstActivity),
         dividend: dividend?.toNumber() ?? 0,
@@ -1748,6 +1749,9 @@ export class PortfolioService {
         sectors: [],
         symbol: currency
       },
+      countries: [],
+      currency,
+      dataSource: undefined,
       dateOfFirstActivity: undefined,
       dividend: 0,
       grossPerformance: 0,
