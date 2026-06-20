@@ -103,7 +103,7 @@
           <mat-card
             appearance="outlined"
             class="h-100"
-            [ngClass]="{ active: user?.subscription?.type === 'Basic' }"
+            [class.active]="user?.subscription?.type === 'Basic'"
           >
             <mat-card-content class="d-flex flex-column h-100">
               <div class="flex-grow-1">
@@ -169,7 +169,7 @@
           <mat-card
             appearance="outlined"
             class="h-100"
-            [ngClass]="{ active: user?.subscription?.type === 'Premium' }"
+            [class.active]="user?.subscription?.type === 'Premium'"
           >
             <mat-card-content class="d-flex flex-column h-100">
               @if (label) {
@@ -305,23 +305,23 @@
       </div>
     </div>
   </div>
-  @if (user?.subscription?.type === 'Basic') {
+  @if (user?.referralPartners?.length) {
     <div class="row">
       <div class="col mt-3">
         <p>
           <ng-container i18n>If you plan to open an account at</ng-container>
           <ng-container>&nbsp;</ng-container>
           @for (
-            broker of referralBrokers;
-            track broker;
+            partner of user.referralPartners;
+            track partner.name;
             let i = $index;
             let last = $last
           ) {
-            <i>{{ broker }}</i>
+            <i>{{ partner.name }}</i>
             @if (last) {
               <span>, </span>
             } @else {
-              @if (i === referralBrokers.length - 2) {
+              @if (i === user.referralPartners.length - 2) {
                 <ng-container>&nbsp;</ng-container>
                 <ng-container i18n>or</ng-container>
                 <ng-container>&nbsp;</ng-container>

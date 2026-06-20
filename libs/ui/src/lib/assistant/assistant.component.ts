@@ -2,7 +2,7 @@ import { Filter, PortfolioPosition, User } from '@ghostfolio/common/interfaces';
 import { InternalRoute } from '@ghostfolio/common/routes/interfaces/internal-route.interface';
 import { internalRoutes } from '@ghostfolio/common/routes/routes';
 import { AccountWithPlatform, DateRange } from '@ghostfolio/common/types';
-import { AdminService, DataService } from '@ghostfolio/ui/services';
+import { DataService } from '@ghostfolio/ui/services';
 
 import { FocusKeyManager } from '@angular/cdk/a11y';
 import {
@@ -39,7 +39,7 @@ import {
   closeOutline,
   searchOutline
 } from 'ionicons/icons';
-import { isFunction } from 'lodash';
+import { isFunction, sample } from 'lodash';
 import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
 import { EMPTY, Observable, merge, of } from 'rxjs';
 import {
@@ -105,14 +105,17 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   public dateRangeFormControl = new FormControl<string | null>(null);
   public dateRangeOptions: DateRangeOption[] = [];
   public holdings: PortfolioPosition[] = [];
+
   public isLoading = {
     accounts: false,
     assetProfiles: false,
     holdings: false,
     quickLinks: false
   };
+
   public isOpen = false;
-  public placeholder = $localize`Find account, holding or page...`;
+  public placeholder: string;
+
   public portfolioFilterFormControl = new FormControl<PortfolioFilterFormValue>(
     {
       account: null,
@@ -121,13 +124,16 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       tag: null
     }
   );
+
   public searchFormControl = new FormControl('');
+
   public searchResults: SearchResults = {
     accounts: [],
     assetProfiles: [],
     holdings: [],
     quickLinks: []
   };
+
   public tags: Filter[] = [];
 
   protected readonly closed = output<void>();
@@ -148,7 +154,6 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   private preselectionTimeout: ReturnType<typeof setTimeout>;
 
   public constructor(
-    private adminService: AdminService,
     private changeDetectorRef: ChangeDetectorRef,
     private dataService: DataService,
     private destroyRef: DestroyRef
@@ -390,19 +395,17 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       });
     }
 
-    if (this.user?.settings?.isExperimentalFeatures) {
-      this.dateRangeOptions = this.dateRangeOptions.concat(
-        eachYearOfInterval({
-          end: new Date(),
-          start: this.user?.dateOfFirstActivity ?? new Date()
+    this.dateRangeOptions = this.dateRangeOptions.concat(
+      eachYearOfInterval({
+        end: new Date(),
+        start: this.user?.dateOfFirstActivity ?? new Date()
+      })
+        .map((date) => {
+          return { label: format(date, 'yyyy'), value: format(date, 'yyyy') };
         })
-          .map((date) => {
-            return { label: format(date, 'yyyy'), value: format(date, 'yyyy') };
-          })
-          .slice(0, -1)
-          .reverse()
-      );
-    }
+        .slice(0, -1)
+        .reverse()
+    );
 
     if (
       this.user?.dateOfFirstActivity &&
@@ -457,7 +460,15 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       holdings: true,
       quickLinks: true
     };
+
     this.keyManager = new FocusKeyManager(this.assistantListItems).withWrap();
+
+    this.placeholder = sample([
+      $localize`Find an account...`,
+      $localize`Find a holding...`,
+      $localize`Jump to a page...`
+    ]);
+
     this.searchResults = {
       accounts: [],
       assetProfiles: [],
@@ -470,6 +481,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
     }
 
     this.searchFormControl.setValue('');
+
     setTimeout(() => {
       this.searchElement?.nativeElement?.focus();
     });
@@ -480,6 +492,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       holdings: false,
       quickLinks: false
     };
+
     this.setIsOpen(true);
 
     this.dataService
@@ -487,11 +500,16 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(({ holdings }) => {
         this.holdings = holdings
-          .filter(({ assetSubClass }) => {
-            return assetSubClass && !['CASH'].includes(assetSubClass);
+          .filter(({ assetProfile }) => {
+            return (
+              assetProfile.assetSubClass &&
+              !['CASH'].includes(assetProfile.assetSubClass)
+            );
           })
           .sort((a, b) => {
-            return a.name?.localeCompare(b.name);
+            return (a.assetProfile.name ?? '').localeCompare(
+              b.assetProfile.name ?? ''
+            );
           });
 
         this.setPortfolioFilterFormValues();
@@ -513,7 +531,7 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
         type: 'ASSET_CLASS'
       },
       {
-        id: filterValue?.holding?.dataSource ?? '',
+        id: filterValue?.holding?.assetProfile?.dataSource ?? '',
         type: 'DATA_SOURCE'
       },
       {
@@ -657,8 +675,8 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
   private searchAssetProfiles(
     aSearchTerm: string
   ): Observable<SearchResultItem[]> {
-    return this.adminService
-      .fetchAdminMarketData({
+    return this.dataService
+      .fetchAssetProfiles({
         filters: [
           {
             id: aSearchTerm,
@@ -671,8 +689,8 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
         catchError(() => {
           return EMPTY;
         }),
-        map(({ marketData }) => {
-          return marketData.map(
+        map(({ assetProfiles }) => {
+          return assetProfiles.map(
             ({ assetSubClass, currency, dataSource, name, symbol }) => {
               return {
                 currency,
@@ -704,18 +722,16 @@ export class GfAssistantComponent implements OnChanges, OnDestroy, OnInit {
           return EMPTY;
         }),
         map(({ holdings }) => {
-          return holdings.map(
-            ({ assetSubClass, currency, dataSource, name, symbol }) => {
-              return {
-                currency,
-                dataSource,
-                name,
-                symbol,
-                assetSubClassString: translate(assetSubClass ?? ''),
-                mode: SearchMode.HOLDING as const
-              };
-            }
-          );
+          return holdings.map(({ assetProfile }) => {
+            return {
+              assetSubClassString: translate(assetProfile.assetSubClass ?? ''),
+              currency: assetProfile.currency ?? '',
+              dataSource: assetProfile.dataSource,
+              mode: SearchMode.HOLDING as const,
+              name: assetProfile.name ?? '',
+              symbol: assetProfile.symbol
+            };
+          });
         }),
         takeUntilDestroyed(this.destroyRef)
       );

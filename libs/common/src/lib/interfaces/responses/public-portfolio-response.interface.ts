@@ -14,9 +14,6 @@ export interface PublicPortfolioResponse extends PublicPortfolioResponseV1 {
     [symbol: string]: Pick<
       PortfolioPosition,
       | 'allocationInPercentage'
-
-      /** @deprecated */
-      | 'assetClass'
       | 'assetProfile'
 
       /** @deprecated */

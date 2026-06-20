@@ -4,13 +4,10 @@ import type { Activity, ActivityError } from './activities.interface';
 import type { AdminData } from './admin-data.interface';
 import type { AdminJobs } from './admin-jobs.interface';
 import type { AdminMarketDataDetails } from './admin-market-data-details.interface';
-import type {
-  AdminMarketData,
-  AdminMarketDataItem
-} from './admin-market-data.interface';
 import type { AdminUser } from './admin-user.interface';
 import type { AssetClassSelectorOption } from './asset-class-selector-option.interface';
 import type { AssetProfileIdentifier } from './asset-profile-identifier.interface';
+import type { AssetProfileItem } from './asset-profile-item.interface';
 import type { BenchmarkProperty } from './benchmark-property.interface';
 import type { Benchmark } from './benchmark.interface';
 import type { Coupon } from './coupon.interface';
@@ -25,7 +22,10 @@ import type { HoldingWithParents } from './holding-with-parents.interface';
 import type { Holding } from './holding.interface';
 import type { InfoItem } from './info-item.interface';
 import type { InvestmentItem } from './investment-item.interface';
-import type { LineChartItem } from './line-chart-item.interface';
+import type {
+  LineChartItem,
+  NullableLineChartItem
+} from './line-chart-item.interface';
 import type { LookupItem } from './lookup-item.interface';
 import type { MarketData } from './market-data.interface';
 import type { PortfolioChart } from './portfolio-chart.interface';
@@ -35,6 +35,7 @@ import type { PortfolioPosition } from './portfolio-position.interface';
 import type { PortfolioReportRule } from './portfolio-report-rule.interface';
 import type { PortfolioSummary } from './portfolio-summary.interface';
 import type { Product } from './product';
+import type { ReferralPartner } from './referral-partner.interface';
 import type { AccessTokenResponse } from './responses/access-token-response.interface';
 import type { AccountBalancesResponse } from './responses/account-balances-response.interface';
 import type { AccountResponse } from './responses/account-response.interface';
@@ -44,7 +45,9 @@ import type { ActivityResponse } from './responses/activity-response.interface';
 import type { AdminUserResponse } from './responses/admin-user-response.interface';
 import type { AdminUsersResponse } from './responses/admin-users-response.interface';
 import type { AiPromptResponse } from './responses/ai-prompt-response.interface';
+import type { AiServiceHealthResponse } from './responses/ai-service-health-response.interface';
 import type { ApiKeyResponse } from './responses/api-key-response.interface';
+import type { AssetProfilesResponse } from './responses/asset-profiles-response.interface';
 import type { AssetResponse } from './responses/asset-response.interface';
 import type { BenchmarkMarketDataDetailsResponse } from './responses/benchmark-market-data-details-response.interface';
 import type { BenchmarkResponse } from './responses/benchmark-response.interface';
@@ -90,7 +93,6 @@ import type { SubscriptionOffer } from './subscription-offer.interface';
 import type { SymbolItem } from './symbol-item.interface';
 import type { SymbolMetrics } from './symbol-metrics.interface';
 import type { SystemMessage } from './system-message.interface';
-import type { TabConfiguration } from './tab-configuration.interface';
 import type { ToggleOption } from './toggle-option.interface';
 import type { UserItem } from './user-item.interface';
 import type { UserSettings } from './user-settings.interface';
@@ -112,17 +114,18 @@ export {
   ActivityResponse,
   AdminData,
   AdminJobs,
-  AdminMarketData,
   AdminMarketDataDetails,
-  AdminMarketDataItem,
   AdminUser,
   AdminUserResponse,
   AdminUsersResponse,
   AiPromptResponse,
+  AiServiceHealthResponse,
   ApiKeyResponse,
   AssertionCredentialJSON,
   AssetClassSelectorOption,
   AssetProfileIdentifier,
+  AssetProfileItem,
+  AssetProfilesResponse,
   AssetResponse,
   AttestationCredentialJSON,
   Benchmark,
@@ -159,6 +162,7 @@ export {
   MarketData,
   MarketDataDetailsResponse,
   MarketDataOfMarketsResponse,
+  NullableLineChartItem,
   OAuthResponse,
   PlatformsResponse,
   PortfolioChart,
@@ -178,6 +182,7 @@ export {
   PublicKeyCredentialRequestOptionsJSON,
   PublicPortfolioResponse,
   QuotesResponse,
+  ReferralPartner,
   ResponseError,
   RuleSettings,
   ScraperConfiguration,
@@ -186,7 +191,6 @@ export {
   SymbolItem,
   SymbolMetrics,
   SystemMessage,
-  TabConfiguration,
   ToggleOption,
   User,
   UserItem,

@@ -1,7 +1,7 @@
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { CreatePlatformDto, UpdatePlatformDto } from '@ghostfolio/common/dtos';
 import { ConfirmationDialogType } from '@ghostfolio/common/enums';
-import { getLocale } from '@ghostfolio/common/helper';
+import { getLocale, getLowercase } from '@ghostfolio/common/helper';
 import { GfEntityLogoComponent } from '@ghostfolio/ui/entity-logo';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { AdminService, DataService } from '@ghostfolio/ui/services';
@@ -11,10 +11,12 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   DestroyRef,
-  Input,
+  inject,
+  input,
   OnInit,
-  ViewChild
+  viewChild
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,7 +33,6 @@ import {
   ellipsisHorizontal,
   trashOutline
 } from 'ionicons/icons';
-import { get } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
 
 import { GfCreateOrUpdatePlatformDialogComponent } from './create-or-update-platform-dialog/create-or-update-platform-dialog.component';
@@ -54,27 +55,29 @@ import { CreateOrUpdatePlatformDialogParams } from './create-or-update-platform-
   templateUrl: './admin-platform.component.html'
 })
 export class GfAdminPlatformComponent implements OnInit {
-  @Input() locale = getLocale();
+  public readonly locale = input(getLocale());
 
-  @ViewChild(MatSort) sort: MatSort;
+  protected dataSource = new MatTableDataSource<Platform>();
+  protected readonly displayedColumns = ['name', 'url', 'accounts', 'actions'];
+  protected platforms: Platform[];
 
-  public dataSource = new MatTableDataSource<Platform>();
-  public deviceType: string;
-  public displayedColumns = ['name', 'url', 'accounts', 'actions'];
-  public platforms: Platform[];
+  private readonly deviceType = computed(
+    () => this.deviceDetectorService.deviceInfo().deviceType
+  );
+  private readonly sort = viewChild.required(MatSort);
 
-  public constructor(
-    private adminService: AdminService,
-    private changeDetectorRef: ChangeDetectorRef,
-    private dataService: DataService,
-    private destroyRef: DestroyRef,
-    private deviceService: DeviceDetectorService,
-    private dialog: MatDialog,
-    private notificationService: NotificationService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private userService: UserService
-  ) {
+  private readonly adminService = inject(AdminService);
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly dataService = inject(DataService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly deviceDetectorService = inject(DeviceDetectorService);
+  private readonly dialog = inject(MatDialog);
+  private readonly notificationService = inject(NotificationService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly userService = inject(UserService);
+
+  public constructor() {
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
@@ -86,7 +89,9 @@ export class GfAdminPlatformComponent implements OnInit {
               return id === params['platformId'];
             });
 
-            this.openUpdatePlatformDialog(platform);
+            if (platform) {
+              this.openUpdatePlatformDialog(platform);
+            }
           } else {
             this.router.navigate(['.'], { relativeTo: this.route });
           }
@@ -97,12 +102,10 @@ export class GfAdminPlatformComponent implements OnInit {
   }
 
   public ngOnInit() {
-    this.deviceType = this.deviceService.getDeviceInfo().deviceType;
-
     this.fetchPlatforms();
   }
 
-  public onDeletePlatform(aId: string) {
+  protected onDeletePlatform(aId: string) {
     this.notificationService.confirm({
       confirmFn: () => {
         this.deletePlatform(aId);
@@ -112,7 +115,7 @@ export class GfAdminPlatformComponent implements OnInit {
     });
   }
 
-  public onUpdatePlatform({ id }: Platform) {
+  protected onUpdatePlatform({ id }: Platform) {
     this.router.navigate([], {
       queryParams: { editPlatformDialog: true, platformId: id }
     });
@@ -142,8 +145,8 @@ export class GfAdminPlatformComponent implements OnInit {
         this.platforms = platforms;
 
         this.dataSource = new MatTableDataSource(platforms);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = get;
+        this.dataSource.sort = this.sort();
+        this.dataSource.sortingDataAccessor = getLowercase;
 
         this.dataService.updateInfo();
 
@@ -156,15 +159,9 @@ export class GfAdminPlatformComponent implements OnInit {
       GfCreateOrUpdatePlatformDialogComponent,
       CreateOrUpdatePlatformDialogParams
     >(GfCreateOrUpdatePlatformDialogComponent, {
-      data: {
-        platform: {
-          id: null,
-          name: null,
-          url: null
-        }
-      },
-      height: this.deviceType === 'mobile' ? '98vh' : undefined,
-      width: this.deviceType === 'mobile' ? '100vw' : '50rem'
+      data: {} satisfies CreateOrUpdatePlatformDialogParams,
+      height: this.deviceType() === 'mobile' ? '98vh' : undefined,
+      width: this.deviceType() === 'mobile' ? '100vw' : '50rem'
     });
 
     dialogRef
@@ -191,15 +188,7 @@ export class GfAdminPlatformComponent implements OnInit {
       });
   }
 
-  private openUpdatePlatformDialog({
-    id,
-    name,
-    url
-  }: {
-    id: string;
-    name: string;
-    url: string;
-  }) {
+  private openUpdatePlatformDialog({ id, name, url }: Platform) {
     const dialogRef = this.dialog.open<
       GfCreateOrUpdatePlatformDialogComponent,
       CreateOrUpdatePlatformDialogParams
@@ -210,9 +199,9 @@ export class GfAdminPlatformComponent implements OnInit {
           name,
           url
         }
-      },
-      height: this.deviceType === 'mobile' ? '98vh' : undefined,
-      width: this.deviceType === 'mobile' ? '100vw' : '50rem'
+      } satisfies CreateOrUpdatePlatformDialogParams,
+      height: this.deviceType() === 'mobile' ? '98vh' : undefined,
+      width: this.deviceType() === 'mobile' ? '100vw' : '50rem'
     });
 
     dialogRef

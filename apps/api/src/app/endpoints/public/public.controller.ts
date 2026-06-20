@@ -150,7 +150,7 @@ export class PublicController {
       Object.entries(holdings).filter(([, holding]) => {
         // Remove only cash holdings that match the base currency
         const isCash = holding.assetSubClass === AssetSubClass.CASH;
-        const isBaseCurrency = holding.symbol === baseCurrency;
+        const isBaseCurrency = holding.assetProfile.symbol === baseCurrency;
         return !(isCash && isBaseCurrency);
       })
     );
@@ -291,7 +291,6 @@ export class PublicController {
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,
-          assetClass: portfolioPosition.assetClass,
           assetProfile: portfolioPosition.assetProfile,
           assetSubClass: portfolioPosition.assetSubClass,
           averagePrice: hasDetails ? portfolioPosition.averagePrice : undefined,
@@ -303,16 +302,16 @@ export class PublicController {
           investment: portfolioPosition.investment,
           marketPrice: hasDetails ? portfolioPosition.marketPrice : undefined,
           markets: portfolioPosition.markets,
-          name: portfolioPosition.name,
+          name: portfolioPosition.assetProfile.name,
           netPerformance: portfolioPosition.netPerformance,
           netPerformancePercentWithCurrencyEffect:
             portfolioPosition.netPerformancePercentWithCurrencyEffect,
           netPerformanceWithCurrencyEffect:
             portfolioPosition.netPerformanceWithCurrencyEffect,
           quantity: portfolioPosition.quantity,
-          sectors: portfolioPosition.sectors,
-          symbol: portfolioPosition.symbol,
-          url: portfolioPosition.url,
+          sectors: portfolioPosition.assetProfile.sectors,
+          symbol: portfolioPosition.assetProfile.symbol,
+          url: portfolioPosition.assetProfile.url,
           valueInBaseCurrency: portfolioPosition.valueInBaseCurrency,
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };
@@ -325,7 +324,6 @@ export class PublicController {
         publicPortfolioResponse.holdings[symbol] = {
           allocationInPercentage:
             portfolioPosition.valueInBaseCurrency / totalValue,
-          assetClass: hasDetails ? portfolioPosition.assetClass : undefined,
           assetProfile: hasDetails ? portfolioPosition.assetProfile : undefined,
           assetSubClass: undefined,
           averagePrice: hasDetails ? portfolioPosition.averagePrice : undefined,
@@ -337,15 +335,15 @@ export class PublicController {
           investment: undefined,
           marketPrice: hasDetails ? portfolioPosition.marketPrice : undefined,
           markets: hasDetails ? portfolioPosition.markets : undefined,
-          name: portfolioPosition.name,
+          name: portfolioPosition.assetProfile.name,
           netPerformance: undefined,
           netPerformancePercentWithCurrencyEffect:
             portfolioPosition.netPerformancePercentWithCurrencyEffect,
           netPerformanceWithCurrencyEffect: undefined,
           quantity: undefined,
-          sectors: hasDetails ? portfolioPosition.sectors : [],
-          symbol: portfolioPosition.symbol,
-          url: portfolioPosition.url,
+          sectors: hasDetails ? portfolioPosition.assetProfile.sectors : [],
+          symbol: portfolioPosition.assetProfile.symbol,
+          url: portfolioPosition.assetProfile.url,
           valueInBaseCurrency: undefined,
           valueInPercentage: portfolioPosition.valueInBaseCurrency / totalValue
         };

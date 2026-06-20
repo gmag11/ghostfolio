@@ -1,6 +1,5 @@
 import { UserService } from '@ghostfolio/client/services/user/user.service';
-import { ASSET_CLASS_MAPPING } from '@ghostfolio/common/config';
-import { locale as defaultLocale } from '@ghostfolio/common/config';
+import { ASSET_CLASS_MAPPING, DEFAULT_LOCALE } from '@ghostfolio/common/config';
 import { CreateOrderDto, UpdateOrderDto } from '@ghostfolio/common/dtos';
 import { getDateFormatString } from '@ghostfolio/common/helper';
 import {
@@ -16,7 +15,6 @@ import { GfSymbolAutocompleteComponent } from '@ghostfolio/ui/symbol-autocomplet
 import { GfTagsSelectorComponent } from '@ghostfolio/ui/tags-selector';
 import { GfValueComponent } from '@ghostfolio/ui/value';
 
-import { NgClass } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -70,7 +68,6 @@ import { ActivityType } from './types/activity-type.type';
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
-    NgClass,
     ReactiveFormsModule
   ],
   selector: 'gf-create-or-update-activity-dialog',
@@ -122,7 +119,7 @@ export class GfCreateOrUpdateActivityDialogComponent {
     this.hasPermissionToCreateOwnTag =
       this.data.user?.settings?.isExperimentalFeatures &&
       hasPermission(this.data.user?.permissions, permissions.createOwnTag);
-    this.locale = this.data.user.settings.locale ?? defaultLocale;
+    this.locale = this.data.user.settings.locale ?? DEFAULT_LOCALE;
     this.mode = this.data.activity?.id ? 'update' : 'create';
 
     this.dateAdapter.setLocale(this.locale);
@@ -141,7 +138,7 @@ export class GfCreateOrUpdateActivityDialogComponent {
             return !['CASH'].includes(assetProfile.assetSubClass);
           })
           .sort((a, b) => {
-            return a.name?.localeCompare(b.name);
+            return a.assetProfile.name?.localeCompare(b.assetProfile.name);
           })
           .map(({ assetProfile }) => {
             return {

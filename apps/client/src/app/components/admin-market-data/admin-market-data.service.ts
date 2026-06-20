@@ -1,14 +1,5 @@
-import { ghostfolioScraperApiSymbolPrefix } from '@ghostfolio/common/config';
 import { ConfirmationDialogType } from '@ghostfolio/common/enums';
-import {
-  getCurrencyFromSymbol,
-  isDerivedCurrency,
-  isRootCurrency
-} from '@ghostfolio/common/helper';
-import {
-  AssetProfileIdentifier,
-  AdminMarketDataItem
-} from '@ghostfolio/common/interfaces';
+import { AssetProfileIdentifier } from '@ghostfolio/common/interfaces';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { AdminService } from '@ghostfolio/ui/services';
 
@@ -41,6 +32,8 @@ export class AdminMarketDataService {
   public deleteAssetProfiles(
     aAssetProfileIdentifiers: AssetProfileIdentifier[]
   ) {
+    const assetProfileCount = aAssetProfileIdentifiers.length;
+
     this.notificationService.confirm({
       confirmFn: () => {
         const deleteRequests = aAssetProfileIdentifiers.map(
@@ -53,7 +46,10 @@ export class AdminMarketDataService {
           .pipe(
             catchError(() => {
               this.notificationService.alert({
-                title: $localize`Oops! Could not delete profiles.`
+                title:
+                  assetProfileCount === 1
+                    ? $localize`Oops! Could not delete the asset profile.`
+                    : $localize`Oops! Could not delete the asset profiles.`
               });
 
               return EMPTY;
@@ -65,26 +61,10 @@ export class AdminMarketDataService {
           .subscribe();
       },
       confirmType: ConfirmationDialogType.Warn,
-      title: $localize`Do you really want to delete these profiles?`
+      title:
+        assetProfileCount === 1
+          ? $localize`Do you really want to delete this asset profile?`
+          : $localize`Do you really want to delete these ${assetProfileCount}:count: asset profiles?`
     });
-  }
-
-  public hasPermissionToDeleteAssetProfile({
-    activitiesCount,
-    isBenchmark,
-    symbol,
-    watchedByCount
-  }: Pick<
-    AdminMarketDataItem,
-    'activitiesCount' | 'isBenchmark' | 'symbol' | 'watchedByCount'
-  >) {
-    return (
-      activitiesCount === 0 &&
-      !isBenchmark &&
-      !isDerivedCurrency(getCurrencyFromSymbol(symbol)) &&
-      !isRootCurrency(getCurrencyFromSymbol(symbol)) &&
-      !symbol.startsWith(ghostfolioScraperApiSymbolPrefix) &&
-      watchedByCount === 0
-    );
   }
 }

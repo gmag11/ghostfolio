@@ -1,7 +1,7 @@
 import { UserService } from '@ghostfolio/client/services/user/user.service';
 import { CreateTagDto, UpdateTagDto } from '@ghostfolio/common/dtos';
 import { ConfirmationDialogType } from '@ghostfolio/common/enums';
-import { getLocale } from '@ghostfolio/common/helper';
+import { getLocale, getLowercase } from '@ghostfolio/common/helper';
 import { NotificationService } from '@ghostfolio/ui/notifications';
 import { DataService } from '@ghostfolio/ui/services';
 import { GfValueComponent } from '@ghostfolio/ui/value';
@@ -10,10 +10,12 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
+  computed,
   DestroyRef,
-  Input,
+  inject,
+  input,
   OnInit,
-  ViewChild
+  viewChild
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonModule } from '@angular/material/button';
@@ -30,7 +32,6 @@ import {
   ellipsisHorizontal,
   trashOutline
 } from 'ionicons/icons';
-import { get } from 'lodash';
 import { DeviceDetectorService } from 'ngx-device-detector';
 
 import { GfCreateOrUpdateTagDialogComponent } from './create-or-update-tag-dialog/create-or-update-tag-dialog.component';
@@ -52,26 +53,33 @@ import { CreateOrUpdateTagDialogParams } from './create-or-update-tag-dialog/int
   templateUrl: './admin-tag.component.html'
 })
 export class GfAdminTagComponent implements OnInit {
-  @Input() locale = getLocale();
+  public readonly locale = input(getLocale());
 
-  @ViewChild(MatSort) sort: MatSort;
+  protected dataSource = new MatTableDataSource<Tag>();
+  protected readonly displayedColumns = [
+    'name',
+    'userId',
+    'activities',
+    'actions'
+  ];
+  protected tags: Tag[];
 
-  public dataSource = new MatTableDataSource<Tag>();
-  public deviceType: string;
-  public displayedColumns = ['name', 'userId', 'activities', 'actions'];
-  public tags: Tag[];
+  private readonly deviceType = computed(
+    () => this.deviceDetectorService.deviceInfo().deviceType
+  );
+  private readonly sort = viewChild.required(MatSort);
 
-  public constructor(
-    private changeDetectorRef: ChangeDetectorRef,
-    private dataService: DataService,
-    private destroyRef: DestroyRef,
-    private deviceService: DeviceDetectorService,
-    private dialog: MatDialog,
-    private notificationService: NotificationService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private userService: UserService
-  ) {
+  private readonly changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly dataService = inject(DataService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly deviceDetectorService = inject(DeviceDetectorService);
+  private readonly dialog = inject(MatDialog);
+  private readonly notificationService = inject(NotificationService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly userService = inject(UserService);
+
+  public constructor() {
     this.route.queryParams
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((params) => {
@@ -83,7 +91,9 @@ export class GfAdminTagComponent implements OnInit {
               return id === params['tagId'];
             });
 
-            this.openUpdateTagDialog(tag);
+            if (tag) {
+              this.openUpdateTagDialog(tag);
+            }
           } else {
             this.router.navigate(['.'], { relativeTo: this.route });
           }
@@ -94,12 +104,10 @@ export class GfAdminTagComponent implements OnInit {
   }
 
   public ngOnInit() {
-    this.deviceType = this.deviceService.getDeviceInfo().deviceType;
-
     this.fetchTags();
   }
 
-  public onDeleteTag(aId: string) {
+  protected onDeleteTag(aId: string) {
     this.notificationService.confirm({
       confirmFn: () => {
         this.deleteTag(aId);
@@ -109,7 +117,7 @@ export class GfAdminTagComponent implements OnInit {
     });
   }
 
-  public onUpdateTag({ id }: Tag) {
+  protected onUpdateTag({ id }: Tag) {
     this.router.navigate([], {
       queryParams: { editTagDialog: true, tagId: id }
     });
@@ -139,8 +147,8 @@ export class GfAdminTagComponent implements OnInit {
         this.tags = tags;
 
         this.dataSource = new MatTableDataSource(this.tags);
-        this.dataSource.sort = this.sort;
-        this.dataSource.sortingDataAccessor = get;
+        this.dataSource.sort = this.sort();
+        this.dataSource.sortingDataAccessor = getLowercase;
 
         this.dataService.updateInfo();
 
@@ -153,14 +161,9 @@ export class GfAdminTagComponent implements OnInit {
       GfCreateOrUpdateTagDialogComponent,
       CreateOrUpdateTagDialogParams
     >(GfCreateOrUpdateTagDialogComponent, {
-      data: {
-        tag: {
-          id: null,
-          name: null
-        }
-      },
-      height: this.deviceType === 'mobile' ? '98vh' : undefined,
-      width: this.deviceType === 'mobile' ? '100vw' : '50rem'
+      data: {} satisfies CreateOrUpdateTagDialogParams,
+      height: this.deviceType() === 'mobile' ? '98vh' : undefined,
+      width: this.deviceType() === 'mobile' ? '100vw' : '50rem'
     });
 
     dialogRef
@@ -197,9 +200,9 @@ export class GfAdminTagComponent implements OnInit {
           id,
           name
         }
-      },
-      height: this.deviceType === 'mobile' ? '98vh' : undefined,
-      width: this.deviceType === 'mobile' ? '100vw' : '50rem'
+      } satisfies CreateOrUpdateTagDialogParams,
+      height: this.deviceType() === 'mobile' ? '98vh' : undefined,
+      width: this.deviceType() === 'mobile' ? '100vw' : '50rem'
     });
 
     dialogRef

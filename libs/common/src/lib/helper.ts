@@ -1,5 +1,12 @@
 import { NumberParser } from '@internationalized/number';
-import { Type as ActivityType, DataSource, MarketData } from '@prisma/client';
+import {
+  Type as ActivityType,
+  DataSource,
+  MarketData,
+  Prisma,
+  SymbolProfile,
+  SymbolProfileOverrides
+} from '@prisma/client';
 import { Big } from 'big.js';
 import { isISO4217CurrencyCode } from 'class-validator';
 import {
@@ -29,16 +36,59 @@ import { get, isNil, isString } from 'lodash';
 
 import {
   DEFAULT_CURRENCY,
+  DEFAULT_LOCALE,
   DERIVED_CURRENCIES,
-  ghostfolioScraperApiSymbolPrefix,
-  locale
+  ghostfolioFearAndGreedIndexSymbol,
+  ghostfolioFearAndGreedIndexSymbolCryptocurrencies,
+  ghostfolioFearAndGreedIndexSymbolStocks,
+  ghostfolioScraperApiSymbolPrefix
 } from './config';
-import { AssetProfileIdentifier, Benchmark } from './interfaces';
+import {
+  AssetProfileIdentifier,
+  AssetProfileItem,
+  Benchmark
+} from './interfaces';
 import { BenchmarkTrend, ColorScheme } from './types';
 
 export const DATE_FORMAT = 'yyyy-MM-dd';
 export const DATE_FORMAT_MONTHLY = 'MMMM yyyy';
 export const DATE_FORMAT_YEARLY = 'yyyy';
+
+export function applyAssetProfileOverrides<T extends Partial<SymbolProfile>>(
+  assetProfile: T,
+  assetProfileOverrides: SymbolProfileOverrides | null
+): T {
+  if (!assetProfileOverrides) {
+    return assetProfile;
+  }
+
+  const assetProfileWithOverrides = { ...assetProfile } as T;
+
+  assetProfileWithOverrides.assetClass =
+    assetProfileOverrides.assetClass ?? assetProfile.assetClass;
+
+  assetProfileWithOverrides.assetSubClass =
+    assetProfileOverrides.assetSubClass ?? assetProfile.assetSubClass;
+
+  if ((assetProfileOverrides.countries as Prisma.JsonArray)?.length > 0) {
+    assetProfileWithOverrides.countries = assetProfileOverrides.countries;
+  }
+
+  if ((assetProfileOverrides.holdings as Prisma.JsonArray)?.length > 0) {
+    assetProfileWithOverrides.holdings = assetProfileOverrides.holdings;
+  }
+
+  assetProfileWithOverrides.name =
+    assetProfileOverrides.name ?? assetProfile.name;
+
+  if ((assetProfileOverrides.sectors as Prisma.JsonArray)?.length > 0) {
+    assetProfileWithOverrides.sectors = assetProfileOverrides.sectors;
+  }
+
+  assetProfileWithOverrides.url = assetProfileOverrides.url ?? assetProfile.url;
+
+  return assetProfileWithOverrides;
+}
 
 export function calculateBenchmarkTrend({
   days,
@@ -91,6 +141,27 @@ export function calculateMovingAverage({
     }, new Big(0))
     .div(days)
     .toNumber();
+}
+
+export function canDeleteAssetProfile({
+  activitiesCount,
+  isBenchmark,
+  symbol,
+  watchedByCount
+}: Pick<
+  AssetProfileItem,
+  'activitiesCount' | 'isBenchmark' | 'symbol' | 'watchedByCount'
+>): boolean {
+  return (
+    activitiesCount === 0 &&
+    !isBenchmark &&
+    !isDerivedCurrency(getCurrencyFromSymbol(symbol)) &&
+    !isRootCurrency(getCurrencyFromSymbol(symbol)) &&
+    symbol !== ghostfolioFearAndGreedIndexSymbol &&
+    symbol !== ghostfolioFearAndGreedIndexSymbolCryptocurrencies &&
+    symbol !== ghostfolioFearAndGreedIndexSymbolStocks &&
+    watchedByCount === 0
+  );
 }
 
 export function capitalize(aString: string) {
@@ -187,7 +258,19 @@ export function getCurrencyFromSymbol(aSymbol = '') {
   return aSymbol.replace(DEFAULT_CURRENCY, '');
 }
 
-export function getDateFnsLocale(aLanguageCode: string) {
+export function getCountryName({ code }: { code: string }): string {
+  try {
+    return (
+      new Intl.DisplayNames([document.documentElement.lang || DEFAULT_LOCALE], {
+        type: 'region'
+      }).of(code) ?? code
+    );
+  } catch {
+    return code;
+  }
+}
+
+export function getDateFnsLocale(aLanguageCode?: string) {
   if (aLanguageCode === 'ca') {
     return ca;
   } else if (aLanguageCode === 'de') {
@@ -255,7 +338,7 @@ export function getEmojiFlag(aCountryCode: string) {
 }
 
 export function getLocale() {
-  return navigator.language ?? locale;
+  return navigator.language ?? DEFAULT_LOCALE;
 }
 
 export function getLowercase(object: object, path: string) {
@@ -342,20 +425,6 @@ export function getYesterday() {
   return subDays(new Date(Date.UTC(year, month, day)), 1);
 }
 
-export function groupBy<T, K extends keyof T>(
-  key: K,
-  arr: T[]
-): Map<T[K], T[]> {
-  const map = new Map<T[K], T[]>();
-  arr.forEach((t) => {
-    if (!map.has(t[key])) {
-      map.set(t[key], []);
-    }
-    map.get(t[key])!.push(t);
-  });
-  return map;
-}
-
 export function interpolate(template: string, context: any) {
   return template?.replace(/[$]{([^}]+)}/g, (_, objectPath) => {
     const properties = objectPath.split('.');
@@ -372,6 +441,20 @@ export function isCurrency(aCurrency: string) {
   }
 
   return isISO4217CurrencyCode(aCurrency) || isDerivedCurrency(aCurrency);
+}
+
+export function isCurrencySymbol(aSymbol: string) {
+  if (!aSymbol) {
+    return false;
+  }
+
+  return (
+    aSymbol.length >= 2 * DEFAULT_CURRENCY.length &&
+    isCurrency(
+      aSymbol.substring(0, aSymbol.length - DEFAULT_CURRENCY.length)
+    ) &&
+    isCurrency(aSymbol.substring(aSymbol.length - DEFAULT_CURRENCY.length))
+  );
 }
 
 export function isDerivedCurrency(aCurrency: string) {

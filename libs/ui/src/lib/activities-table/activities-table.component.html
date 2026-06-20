@@ -161,13 +161,11 @@
         <ng-container i18n>Name</ng-container>
       </th>
       <td *matCellDef="let element" class="px-1" mat-cell>
-        <div class="align-items-center d-flex line-height-1">
-          <div>
-            <span class="text-truncate">{{ element.SymbolProfile?.name }}</span>
-            @if (element.isDraft) {
-              <span class="badge badge-secondary ml-1" i18n>Draft</span>
-            }
-          </div>
+        <div class="align-items-center d-flex line-height-1 text-nowrap">
+          <span class="text-truncate">{{ element.SymbolProfile?.name }}</span>
+          @if (element.isDraft) {
+            <span class="badge badge-secondary ml-1" i18n>Draft</span>
+          }
         </div>
         @if (
           element.SymbolProfile?.dataSource !== 'MANUAL' &&
@@ -327,7 +325,9 @@
               [url]="element.account?.platform?.url"
             />
           }
-          <span class="d-none d-lg-block">{{ element.account?.name }}</span>
+          <span class="d-none d-lg-block text-nowrap">{{
+            element.account?.name
+          }}</span>
         </div>
       </td>
     </ng-container>
@@ -496,9 +496,7 @@
     <tr
       *matRowDef="let row; columns: displayedColumns()"
       mat-row
-      [ngClass]="{
-        'cursor-pointer': canClickActivity(row)
-      }"
+      [class.cursor-pointer]="canClickActivity(row)"
       (click)="onClickActivity(row)"
     ></tr>
   </table>
@@ -516,10 +514,9 @@
 }
 
 <mat-paginator
+  [class.d-none]="(isLoading() && !totalItems) || totalItems <= pageSize"
+  [hidePageSize]="true"
   [length]="totalItems"
-  [ngClass]="{
-    'd-none': (isLoading() && !totalItems) || totalItems <= pageSize
-  }"
   [pageIndex]="pageIndex"
   [pageSize]="pageSize"
   [showFirstLastButtons]="true"

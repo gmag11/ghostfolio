@@ -94,7 +94,7 @@
           <ng-container i18n>or start a discussion at</ng-container>
           <ng-container>&nbsp;</ng-container>
           <a
-            href="https://github.com/ghostfolio/ghostfolio"
+            href="https://github.com/ghostfolio/ghostfolio/discussions"
             i18n-title
             title="Find Ghostfolio on GitHub"
             >GitHub</a
@@ -178,7 +178,7 @@
   <div class="mb-5 row">
     <div
       class="col-md-6 col-xs-12 my-2"
-      [ngClass]="{ 'offset-md-3': hasPermissionForSubscription === false }"
+      [class.offset-md-3]="hasPermissionForSubscription === false"
     >
       <a
         class="py-4 w-100"
